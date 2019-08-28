@@ -1,4 +1,4 @@
-package kitcaddy
+package oioidwsrest
 
 
 type SessionStore struct {
