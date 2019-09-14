@@ -1,0 +1,63 @@
+version: '2'
+networks:
+  gooioidwsrest:
+    driver: bridge
+services:
+# Sts
+   sts:
+     image: kitdocker.kvalitetsit.dk/kvalitetsit/sts-frontend:543492665993a4323f1d4fc94d266278d58764fb
+     environment:
+       - SERVER_NAME=sts
+       - STS_HOST=sts-backend
+     volumes:
+       - ./sts/sts.cer:/certificates/sts.cer
+       - ./sts/sts.pem:/certificates/sts.pem
+     networks:
+       - gooioidwsrest
+   sts-backend:
+     image: kitdocker.kvalitetsit.dk/kvalitetsit/sts:543492665993a4323f1d4fc94d266278d58764fb
+     environment:
+       - LOG_LEVEL=DEBUG
+       - STS_ISSUER=stsa
+       - STS_TOKEN_LIFETIME=2800
+       - STS_SUPPORTED_CLAIMS=claim-a,claim-b
+       - STS_COPY_ATTRIBUTES=claim-a
+       - STS_CERTIFICATE=/certificates/sts.cer
+       - STS_KEY=/certificates/sts.pem
+       - STS_TRUST_CA_PATH=/trust/*
+       - MYSQL_HOST=mysql
+       - MYSQL_DBNAME=sts
+       - MYSQL_USERNAME=sts
+       - MYSQL_PASSWORD=sts123
+       - JSON_CLIENT_PATH=/clients/clients.json
+     volumes:
+       - ./sts/sts.cer:/certificates/sts.cer
+       - ./sts/sts.pem:/certificates/sts.pem
+       - ./sts/clients:/clients
+     networks:
+       - gooioidwsrest
+# Testservice
+   testservice:
+     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/oioidws-rest-wsp:650c062dbc1d117e5857cf955e217f294103b380
+     environment:
+       - CONTEXT=test
+       - MONGODB=mongo
+       - MONGODB_DATABASE=testwsp
+       - ENDPOINT_URL=http://testservice-backend/
+       - SAML_VALIDATION_URL=http://testservice-wsp-samltokenvalidator:8081/validate
+     networks:
+       - gooioidwsrest
+   testservice-wsp-samltokenvalidator:
+     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:650c062dbc1d117e5857cf955e217f294103b380
+     environment:
+       - SERVER_PORT=8081
+       - STS_CERTIFICATE=/certificate/sts.cer
+     volumes:
+       - ./sts:/certificate
+     networks:
+       - gooioidwsrest
+   testservice-backend:
+     image: mendhak/http-https-echo
+     networks:
+       - gooioidwsrest
+

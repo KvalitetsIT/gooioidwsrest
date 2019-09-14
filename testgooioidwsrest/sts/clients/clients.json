@@ -1,0 +1,25 @@
+[
+  {
+    "certificate": "/clients/medcom.cer",
+    "itSystem": "medcomsystemuser",
+    "subject": "CN=medcomsystemuser,O=Internet Widgits Pty Ltd,ST=Some-State,C=DK",
+    "attributes": [
+      {
+        "name": "test:test",
+        "value": "autovalue1"
+      },
+      {
+        "name": "test:test",
+        "value": "autovalue2"
+      }
+    ],
+    "endpoints": [
+      {
+        "name": "servicea",
+        "audience": "urn:kit:testa:servicea"
+      }
+    ]
+  }
+]
+
+

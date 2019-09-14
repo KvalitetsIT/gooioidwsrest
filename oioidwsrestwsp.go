@@ -1,12 +1,12 @@
 package oioidwsrest
 
 import (
-	"crypto/x509"
-	"io"
+//	"crypto/x509"
+//	"io"
 //	"fmt"
-	"net/http"
+//	"net/http"
 )
-
+/*
 const HEADER_WWW_AUTHENTICATE = "WWW-Authenticate"
 const HEADER_AUTHORIZATION = "Authorization"
 
@@ -78,3 +78,4 @@ func getClientCertificate(req *http.Request) *x509.Certificate {
         }
 	return nil
 }
+*/

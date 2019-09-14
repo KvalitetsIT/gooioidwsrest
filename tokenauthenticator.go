@@ -69,32 +69,32 @@ func NewTokenAuthenticator(audienceRestriction string, certPaths []string, valid
 	return t;
 }
 
-func (t TokenAuthenticator) Authenticate(sessionStore *SessionStore, clientCert *x509.Certificate, r *http.Request) (string, error) {
+func (t TokenAuthenticator) Authenticate(clientCert *x509.Certificate, r *http.Request) (string, *AuthenticatedAssertion, error) {
 	path := r.URL.Path
 	if (path == "/authenticate") {
 		body, err := ioutil.ReadAll(r.Body)
 		if (err != nil) {
-			return "", err
+			return "", nil, err
 		}
-		return t.processAuthenticationRequest(sessionStore, clientCert, body)
+		return t.processAuthenticationRequest(clientCert, body)
 	}
 
-	return "", nil
+	return "", nil, nil
 }
 
 
-func (t TokenAuthenticator) processAuthenticationRequest(sessionStore *SessionStore, clientCert *x509.Certificate, body []byte) (string, error) {
+func (t TokenAuthenticator) processAuthenticationRequest(clientCert *x509.Certificate, body []byte) (string, *AuthenticatedAssertion, error) {
 
 	// Retrive the assertion from the body
 	assertionStr := strings.TrimPrefix(string(body), "saml-token=")
 
 	// Parse the assertion
-	_, err := t.ParseAndValidateAuthenticationRequestPayload(assertionStr, clientCert)
+	authenticatedAssertion, err := t.ParseAndValidateAuthenticationRequestPayload(assertionStr, clientCert)
 	if (err != nil) {
-		return "", err
+		return assertionStr, nil, err
 	}
 
-	return "1224", err
+	return assertionStr, authenticatedAssertion, err
 }
 
 func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body string, clientCert *x509.Certificate) (*AuthenticatedAssertion, error) {
