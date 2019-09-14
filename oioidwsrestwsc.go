@@ -3,6 +3,14 @@ package oioidwsrest
 import (
         "net/http"
 	"fmt"
+
+        "crypto/tls"
+        "crypto/x509"
+
+        "encoding/pem"
+
+	"io/ioutil"
+
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 	stsclient "github.com/KvalitetsIT/gostsclient"
 	uuid "github.com/google/uuid"
@@ -15,10 +23,29 @@ type OioIdwsRestAuthenticationInfo struct {
         ExpiresIn       int64
 }
 
+type OioIdwsRestHttpProtocolClientConfig struct {
+
+	matchHandler		securityprotocol.MatchHandler
+
+	SessionHeaderName	string
+
+	StsUrl			string
+	StsCertFile		string
+
+	ClientCertFile		string
+	ClientKeyFile		string
+
+	ServiceAudience		string
+	ServiceEndpoint		string
+
+	SessionFetchUrl		string
+
+	Service			securityprotocol.HttpHandler
+}
+
 type OioIdwsRestClientAuthentification func(http.ResponseWriter, *http.Request, *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, int, error)
 
 type OioIdwsRestDecorateRequestWithAuthenticationToken func(tokenData *securityprotocol.TokenData, r *http.Request) error
-
 
 type OioIdwsRestHttpProtocolClient struct {
 
@@ -30,14 +57,61 @@ type OioIdwsRestHttpProtocolClient struct {
 	sessionDataFetcher	securityprotocol.SessionDataFetcher
 
 	stsClient		*stsclient.StsClient
+	httpClient		*http.Client
 
-//	preAuthentication	PreAuthentication
 	decorateRequest		OioIdwsRestDecorateRequestWithAuthenticationToken
+
+	serviceEndpoint		string
+	serviceAudience		string
 
 	service			securityprotocol.HttpHandler
 }
 
-func NewOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
+func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig, tokenCache securityprotocol.TokenCache) *OioIdwsRestHttpProtocolClient {
+
+        stsCert, err := ioutil.ReadFile(config.StsCertFile)
+        if (err != nil) {
+                panic(err)
+        }
+        stsBlock, _ := pem.Decode([]byte(stsCert))
+	if (err != nil) {
+		panic(err)
+	}
+        stsCertToTrust, err := x509.ParseCertificate(stsBlock.Bytes)
+	if (err != nil) {
+		panic(err)
+	}
+
+        clientKeyPair, err := tls.LoadX509KeyPair(config.ClientCertFile, config.ClientKeyFile)
+	if (err != nil) {
+		panic(err)
+	}
+
+	caCertPool := x509.NewCertPool()
+        caCertPool.AddCert(stsCertToTrust)
+        tlsConfig := &tls.Config{
+                Certificates: []tls.Certificate{ clientKeyPair },
+                RootCAs:      caCertPool,
+        }
+        transport := &http.Transport{ TLSClientConfig: tlsConfig }
+        client := &http.Client{ Transport: transport }
+
+        stsClient, err := stsclient.NewStsClientWithHttpClient(client, &clientKeyPair, config.StsUrl)
+	if (err != nil) {
+		panic(err)
+	}
+
+	sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{ HttpHeaderName: config.SessionHeaderName }
+
+	var sessionDataFetcher *securityprotocol.ServiceCallSessionDataFetcher
+	if (len(config.SessionFetchUrl) > 0) {
+		sessionDataFetcher = &securityprotocol.ServiceCallSessionDataFetcher{ SessionDataServiceEndpoint: config.SessionFetchUrl }
+	}
+
+	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, sessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service)
+}
+
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -46,6 +120,9 @@ func NewOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 	httpProtocolClient.sessionDataFetcher = sessionDataFetcher
 	httpProtocolClient.decorateRequest = DoOioIdwsRestDecorateRequestWithAuthenticationToken
 	httpProtocolClient.stsClient = stsClient
+	httpProtocolClient.httpClient = httpClient
+	httpProtocolClient.serviceEndpoint = serviceEndpoint
+	httpProtocolClient.serviceAudience = serviceAudience
 	httpProtocolClient.service = service
 
 	return httpProtocolClient
@@ -60,6 +137,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 	// Check for session id
 	sessionId := client.sessionIdHandler.GetSessionIdFromHttpRequest(r)
+
 	var sessionData *securityprotocol.SessionData
 	var tokenData *securityprotocol.TokenData
 	if (sessionId != "") {
@@ -82,16 +160,9 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 	if (tokenData == nil || (tokenData.Hash != sessionData.Hash) || sessionId == "") {
 
-		/*if (client.preAuthentication != nil) {
-			httpCode, err := client.preAuthentication(w, r, sessionData)
-			if (err != nil || httpCode > 0) {
-				return httpCode, err
-			}
-		}*/
-
-		// No token - or sessiondata has changed since issueing - run authentication
-		authentication, authStatusCode, err := client.doClientAuthentication(w, r, sessionData)
-		if (err != nil || (authStatusCode != http.StatusOK)) {
+		// No token, no session, or sessiondata has changed since issueing - run authentication
+		authentication, err := client.doClientAuthentication(w, r, sessionData)
+		if (err != nil) {
 			return http.StatusUnauthorized, nil
 		}
 
@@ -99,7 +170,6 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 			// Authorization succeded - generate session id
 			sessionId = uuid.New().String()
  		}
-
 
 		hash := "DefaultHash"
 		if (sessionData != nil) {
@@ -110,11 +180,6 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		if (err != nil) {
                         return http.StatusUnauthorized, nil
                 }
-
-		// Some response was generated during authentication (for instance a redirect) - we are done!
-		if (authStatusCode > 0) {
-			return authStatusCode, nil
-		}
 	}
 
 	// Add the authentication token to the request
@@ -124,64 +189,33 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         return client.service.Handle(w, r)
 }
 
-func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, s *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, int, error) {
+func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, s *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
-	audience := "urn:kit:testa:servicea"
 	claims := make(map[string]string)
 	// TODO Claims
 
-        // When
-        response, err := client.stsClient.GetToken(audience, claims)
+	// Get SAML assertion from STS
+        response, err := client.stsClient.GetToken(client.serviceAudience, claims)
 	if (err != nil) {
-		return nil, http.StatusUnauthorized, err
+		return nil, err
 	}
 
-	return &OioIdwsRestAuthenticationInfo{ Token: response.ToString(), ExpiresIn: 10000 }, http.StatusOK, nil
+	// Use that SAML assertion to authenticate
+	authRequest, err := http.NewRequest("POST", fmt.Sprintf("%s/authenticate", client.serviceEndpoint), nil)
+	if (err != nil) {
+		return nil, err
+	}
+	authResponse, err := client.httpClient.Do(authRequest)
+	if (err != nil) {
+		return nil, err
+	}
+	if (authResponse == nil) {
+	}
+
+	return &OioIdwsRestAuthenticationInfo{ Token: response.ToString(), ExpiresIn: 10000 }, nil
 }
 
 func DoOioIdwsRestDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
 
 	return nil
 }
-
-/*
-type OioIdwsRestWsc struct {
-	sessionHeaderName string
-	sessionStore *SessionStore
-	next httpserver.Handler
-}
-
-func NewOioIdwsRestWsc(sessionHeaderName string, sessionStore *SessionStore, next httpserver.Handler) *OioIdwsRestWsp{
-	n := new(OioIdwsRestWsp)
-	n.sessionHeaderName = sessionHeaderName
-	n.sessionStore = sessionStore
-	n.next = next
-	return n
-}
-
-func (a OioIdwsRestWsc) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
-
-	// TODO: Check that the request is a HTTPS request and that it contains a client certificate
-
-	sessionId := a.getSessionId(r)
-
-	// The request identifies a session, check that the session is valid and get it
-	if (sessionId != "") {
-		session, _ := a.sessionStore.GetValidSessionFromId(sessionId)
-
-		if (session != nil) {
-			// The session id ok ... pass-through to next handler
-        		return a.next.ServeHTTP(w, r)
-		}
-	}
-
-	return a.next.ServeHTTP(w, r)
-
-}
-
-
-func (a OioIdwsRestWsc) getSessionId(r *http.Request) (string) {
-	sessionId := r.Header.Get(a.sessionHeaderName)
-	return sessionId
-}
-*/

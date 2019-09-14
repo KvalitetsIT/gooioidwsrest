@@ -22,8 +22,6 @@ const test_oio_idws_rest_header_name = "sessionxyx"
 func TestCallServiceWithOioIdwsRestClient(t *testing.T) {
 
 	// Given
-//        audience := "urn:kit:testa:servicea"
-
         subject := createTestOioIdwsRestHttpProtocolClient()
 	req, _ := http.NewRequest("GET", "/someurl", nil)
 
@@ -33,6 +31,7 @@ func TestCallServiceWithOioIdwsRestClient(t *testing.T) {
 	// Then
 	assert.NilError(t, errProcess)
 	assert.Equal(t, http.StatusOK, httpCode)
+
 	//assert.Equal(t, authAssertion.assertion.Version, "2.0")
 	//assert.Equal(t, len(authAssertion.assertion.AttributeStatement.Attributes), 4)
 	// TODO: tjek flere
@@ -45,13 +44,20 @@ func createTestOioIdwsRestHttpProtocolClient() *OioIdwsRestHttpProtocolClient {
 		panic(err)
 	}
 
-	sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{ HttpHeaderName: test_oio_idws_rest_header_name }
-
 	mockService := new(MockService)
 
-	stsClient := createTestStsClient()
+	config := OioIdwsRestHttpProtocolClientConfig {
+		matchHandler: securityprotocol.MatchAllHandler,
+		SessionHeaderName: test_oio_idws_rest_header_name,
+		StsUrl: "https://sts/sts/service/sts",
+		StsCertFile: "./testgooioidwsrest/sts/sts.cer",
+		ClientCertFile: "./testdata/medcom.cer",
+		ClientKeyFile: "./testdata/medcom.pem",
+		ServiceEndpoint: "https://service",
+		ServiceAudience: "urn:kit:testa:servicea",
+		Service: mockService }
 
-	testClient := NewOioIdwsRestHttpProtocolClient(securityprotocol.MatchAllHandler, mongoTokenCache, sessionIdHandler, nil, stsClient, mockService)
+	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache)
 
 	return testClient
 }
