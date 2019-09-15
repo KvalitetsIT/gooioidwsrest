@@ -37,17 +37,20 @@ services:
      networks:
        - gooioidwsrest
 # Testservice
-   testservice:
+   testservicea:
      image: kitdocker.kvalitetsit.dk/kit-serviceproxy/oioidws-rest-wsp:650c062dbc1d117e5857cf955e217f294103b380
      environment:
        - CONTEXT=test
        - MONGODB=mongo
        - MONGODB_DATABASE=testwsp
-       - ENDPOINT_URL=http://testservice-backend/
-       - SAML_VALIDATION_URL=http://testservice-wsp-samltokenvalidator:8081/validate
+       - ENDPOINT_URL=http://testservicea-backend/
+       - SAML_VALIDATION_URL=http://testservicea-wsp-samltokenvalidator:8081/validate
+     volumes:
+       - ./certificates/testservicea/testservicea.cer:/certificates/server.cert
+       - ./certificates/testservicea/testservicea.key:/certificates/server.key
      networks:
        - gooioidwsrest
-   testservice-wsp-samltokenvalidator:
+   testservicea-wsp-samltokenvalidator:
      image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:650c062dbc1d117e5857cf955e217f294103b380
      environment:
        - SERVER_PORT=8081
@@ -56,7 +59,7 @@ services:
        - ./sts:/certificate
      networks:
        - gooioidwsrest
-   testservice-backend:
+   testservicea-backend:
      image: mendhak/http-https-echo
      networks:
        - gooioidwsrest

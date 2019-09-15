@@ -3,11 +3,13 @@ package oioidwsrest
 import (
         "net/http"
 	"fmt"
+	"bytes"
 
         "crypto/tls"
         "crypto/x509"
 
         "encoding/pem"
+	"encoding/base64"
 
 	"io/ioutil"
 
@@ -30,7 +32,7 @@ type OioIdwsRestHttpProtocolClientConfig struct {
 	SessionHeaderName	string
 
 	StsUrl			string
-	StsCertFile		string
+	TrustCertFiles		[]string
 
 	ClientCertFile		string
 	ClientKeyFile		string
@@ -69,26 +71,31 @@ type OioIdwsRestHttpProtocolClient struct {
 
 func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig, tokenCache securityprotocol.TokenCache) *OioIdwsRestHttpProtocolClient {
 
-        stsCert, err := ioutil.ReadFile(config.StsCertFile)
-        if (err != nil) {
-                panic(err)
-        }
-        stsBlock, _ := pem.Decode([]byte(stsCert))
-	if (err != nil) {
-		panic(err)
-	}
-        stsCertToTrust, err := x509.ParseCertificate(stsBlock.Bytes)
-	if (err != nil) {
-		panic(err)
+	// Truststore
+	caCertPool := x509.NewCertPool()
+	for _, trustCertFile := range config.TrustCertFiles {
+		trustCert, err := ioutil.ReadFile(trustCertFile)
+        	if (err != nil) {
+                	panic(err)
+        	}
+        	trustBlock, _ := pem.Decode([]byte(trustCert))
+        	if (err != nil) {
+                	panic(err)
+        	}
+        	certToTrust, err := x509.ParseCertificate(trustBlock.Bytes)
+        	if (err != nil) {
+                	panic(err)
+        	}
+		caCertPool.AddCert(certToTrust)
 	}
 
+	// Clientkey
         clientKeyPair, err := tls.LoadX509KeyPair(config.ClientCertFile, config.ClientKeyFile)
 	if (err != nil) {
 		panic(err)
 	}
 
-	caCertPool := x509.NewCertPool()
-        caCertPool.AddCert(stsCertToTrust)
+	// Buidl the https client
         tlsConfig := &tls.Config{
                 Certificates: []tls.Certificate{ clientKeyPair },
                 RootCAs:      caCertPool,
@@ -163,7 +170,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		// No token, no session, or sessiondata has changed since issueing - run authentication
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if (err != nil) {
-			return http.StatusUnauthorized, nil
+			return http.StatusUnauthorized, err
 		}
 
 		if (sessionId == "") {
@@ -178,7 +185,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 		tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 		if (err != nil) {
-                        return http.StatusUnauthorized, nil
+                        return http.StatusUnauthorized, err
                 }
 	}
 
@@ -192,7 +199,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, s *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
 	claims := make(map[string]string)
-	// TODO Claims
+	// TODO map Claims from sessionattr in sessiondata
 
 	// Get SAML assertion from STS
         response, err := client.stsClient.GetToken(client.serviceAudience, claims)
@@ -201,15 +208,15 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 
 	// Use that SAML assertion to authenticate
-	authRequest, err := http.NewRequest("POST", fmt.Sprintf("%s/authenticate", client.serviceEndpoint), nil)
+	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
+	encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
+	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
+	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if (err != nil) {
 		return nil, err
 	}
-	authResponse, err := client.httpClient.Do(authRequest)
-	if (err != nil) {
-		return nil, err
-	}
-	if (authResponse == nil) {
+	if (authResponse.StatusCode != http.StatusOK) {
+		return nil, fmt.Errorf(fmt.Sprintf("Authentication failed url:%s body=%s", url, authBody))
 	}
 
 	return &OioIdwsRestAuthenticationInfo{ Token: response.ToString(), ExpiresIn: 10000 }, nil

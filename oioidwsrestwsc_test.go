@@ -23,7 +23,7 @@ func TestCallServiceWithOioIdwsRestClient(t *testing.T) {
 
 	// Given
         subject := createTestOioIdwsRestHttpProtocolClient()
-	req, _ := http.NewRequest("GET", "/someurl", nil)
+	req, _ := http.NewRequest("GET", "https://testservicea/echo", nil)
 
 	// When
 	httpCode, errProcess := subject.Handle(nil, req)
@@ -50,10 +50,10 @@ func createTestOioIdwsRestHttpProtocolClient() *OioIdwsRestHttpProtocolClient {
 		matchHandler: securityprotocol.MatchAllHandler,
 		SessionHeaderName: test_oio_idws_rest_header_name,
 		StsUrl: "https://sts/sts/service/sts",
-		StsCertFile: "./testgooioidwsrest/sts/sts.cer",
+		TrustCertFiles: []string { "./testgooioidwsrest/sts/sts.cer", "./testgooioidwsrest/certificates/testservicea/testservicea.cer" },
 		ClientCertFile: "./testdata/medcom.cer",
 		ClientKeyFile: "./testdata/medcom.pem",
-		ServiceEndpoint: "https://service",
+		ServiceEndpoint: "https://testservicea/test",
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
 
