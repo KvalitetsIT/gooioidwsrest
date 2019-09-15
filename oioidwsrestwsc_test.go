@@ -6,7 +6,6 @@ import (
 
 	"net/http"
 
-	"crypto/tls"
 	"crypto/x509"
 
 	"encoding/pem"
@@ -73,8 +72,7 @@ func createTestStsClient() *stsclient.StsClient {
         stsBlock, _ := pem.Decode([]byte(stsCert))
         stsCertToTrust, _ := x509.ParseCertificate(stsBlock.Bytes)
 
-        clientKeyPair, _ := tls.LoadX509KeyPair("./testdata/medcom.cer", "./testdata/medcom.pem")
-        stsClient, _ := stsclient.NewStsClient(stsCertToTrust, &clientKeyPair, stsUrl)
+        stsClient, _ := stsclient.NewStsClient(stsCertToTrust, "./testdata/medcom.cer", "./testdata/medcom.pem", stsUrl)
 
 	return stsClient
 }

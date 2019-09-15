@@ -6,6 +6,7 @@ import (
 	"bytes"
 
         "crypto/tls"
+	"crypto/rsa"
         "crypto/x509"
 
         "encoding/pem"
@@ -103,7 +104,19 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
         transport := &http.Transport{ TLSClientConfig: tlsConfig }
         client := &http.Client{ Transport: transport }
 
-        stsClient, err := stsclient.NewStsClientWithHttpClient(client, &clientKeyPair, config.StsUrl)
+	// Public key
+	certFileContent, err := ioutil.ReadFile(config.ClientCertFile)
+        if (err != nil) {
+                panic(err)
+        }
+        certBlock, _ := pem.Decode([]byte(certFileContent))
+        cert, err := x509.ParseCertificate(certBlock.Bytes)
+        if (err != nil) {
+                panic(err)
+        }
+        rsaPublicKey := cert.PublicKey.(*rsa.PublicKey)
+
+        stsClient, err := stsclient.NewStsClientWithHttpClient(client, &clientKeyPair, rsaPublicKey, config.StsUrl)
 	if (err != nil) {
 		panic(err)
 	}
