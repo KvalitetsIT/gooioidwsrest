@@ -6,37 +6,78 @@ import (
 
 	"net/http"
 
+	"net/http/httptest"
+
 	"crypto/x509"
+	"crypto/tls"
 
 	"encoding/pem"
+	"encoding/json"
 
+	"strings"
+
+	"fmt"
+	"io"
 	"io/ioutil"
 
+	uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
         stsclient "github.com/KvalitetsIT/gostsclient"
 )
 
 const test_oio_idws_rest_header_name = "sessionxyx"
 
-func TestCallServiceWithOioIdwsRestClient(t *testing.T) {
+func CTestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
 
 	// Given
-        subject := createTestOioIdwsRestHttpProtocolClient()
-	req, _ := http.NewRequest("GET", "https://testservicea/echo", nil)
+        subject, _ := createTestOioIdwsRestHttpProtocolClient()
+	req, _ := http.NewRequest("GET", "https://testservicea/test/echo", nil)
+	recorder := httptest.NewRecorder()
+	sessionId := uuid.New().String()
+	req.Header.Add(test_oio_idws_rest_header_name, sessionId)
 
 	// When
-	httpCode, errProcess := subject.Handle(nil, req)
+	httpCode, errProcess := subject.Handle(recorder, req)
 
 	// Then
 	assert.NilError(t, errProcess)
 	assert.Equal(t, http.StatusOK, httpCode)
 
-	//assert.Equal(t, authAssertion.assertion.Version, "2.0")
-	//assert.Equal(t, len(authAssertion.assertion.AttributeStatement.Attributes), 4)
-	// TODO: tjek flere
+	result := recorder.Result()
+	responseBody, _ := ioutil.ReadAll(result.Body)
+	var jsonData map[string]interface{}
+	json.Unmarshal(responseBody, &jsonData)
+
+	headers := jsonData["headers"].(map[string]interface{})
+	authorization:= headers["authorization"]
+	assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
 }
 
-func createTestOioIdwsRestHttpProtocolClient() *OioIdwsRestHttpProtocolClient {
+func TestCallServiceWithOioIdwsRestClientNoSessionId(t *testing.T) {
+
+        // Given
+        subject, _ := createTestOioIdwsRestHttpProtocolClient()
+        req, _ := http.NewRequest("GET", "https://testservicea/test/echo", nil)
+        recorder := httptest.NewRecorder()
+
+        // When
+        httpCode, errProcess := subject.Handle(recorder, req)
+
+        // Then
+        assert.NilError(t, errProcess)
+        assert.Equal(t, http.StatusOK, httpCode)
+
+        result := recorder.Result()
+        responseBody, _ := ioutil.ReadAll(result.Body)
+        var jsonData map[string]interface{}
+        json.Unmarshal(responseBody, &jsonData)
+
+        headers := jsonData["headers"].(map[string]interface{})
+        authorization:= headers["authorization"]
+        assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
+}
+
+func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
 
 	mongoTokenCache, err := securityprotocol.NewMongoTokenCache("mongo", "testwsc", "mysessions")
 	if (err != nil) {
@@ -58,7 +99,7 @@ func createTestOioIdwsRestHttpProtocolClient() *OioIdwsRestHttpProtocolClient {
 
 	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache)
 
-	return testClient
+	return testClient, mongoTokenCache
 }
 
 func createTestStsClient() *stsclient.StsClient {
@@ -82,6 +123,28 @@ type MockService struct {
 
 }
 
-func (mock *MockService) Handle(http.ResponseWriter, *http.Request) (int, error) {
-        return http.StatusOK, nil
+func (mock *MockService) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
+
+	keyPair, err := tls.LoadX509KeyPair("./testdata/medcom.cer", "./testdata/medcom.pem")
+        if (err != nil) {
+		panic(err)
+        }
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{ keyPair },
+		InsecureSkipVerify: true,
+	}
+	tr := &http.Transport{ TLSClientConfig: config }
+	client := &http.Client{ Transport: tr }
+
+	resp, err := client.Do(r)
+	if (err != nil) {
+		return http.StatusInternalServerError, err
+	}
+
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, resp.Body)
+	resp.Body.Close()
+
+	return resp.StatusCode, nil
 }

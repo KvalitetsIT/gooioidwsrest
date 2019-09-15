@@ -16,7 +16,6 @@ import (
 
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 	stsclient "github.com/KvalitetsIT/gostsclient"
-	uuid "github.com/google/uuid"
 )
 
 
@@ -57,7 +56,7 @@ type OioIdwsRestHttpProtocolClient struct {
 	tokenCache      	securityprotocol.TokenCache
 
 	sessionIdHandler	securityprotocol.SessionIdHandler
-	sessionDataFetcher	securityprotocol.SessionDataFetcher
+	sessionDataFetcher	*securityprotocol.ServiceCallSessionDataFetcher
 
 	stsClient		*stsclient.StsClient
 	httpClient		*http.Client
@@ -131,7 +130,7 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, sessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service)
 }
 
-func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher *securityprotocol.ServiceCallSessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -171,14 +170,16 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         	}
 
        		// Get sessiondata
-        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
-        	if (err != nil) {
-        	        fmt.Println(fmt.Sprintf("Error in GetSessionData: %s (error:%v)", sessionId, err))
-	                return http.StatusInternalServerError, err
-	        }
+		if (client.sessionDataFetcher != nil) {
+	        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
+        		if (err != nil) {
+        		        fmt.Println(fmt.Sprintf("Error in GetSessionData: %s (error:%v)", sessionId, err))
+	        	        return http.StatusInternalServerError, err
+	        	}
+		}
 	}
 
-	if (tokenData == nil || (tokenData.Hash != sessionData.Hash) || sessionId == "") {
+	if (tokenData == nil || (sessionData != nil && tokenData.Hash != sessionData.Hash) || sessionId == "") {
 
 		// No token, no session, or sessiondata has changed since issueing - run authentication
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
@@ -186,20 +187,19 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 			return http.StatusUnauthorized, err
 		}
 
-		if (sessionId == "") {
-			// Authorization succeded - generate session id
-			sessionId = uuid.New().String()
- 		}
-
 		hash := "DefaultHash"
 		if (sessionData != nil) {
 			hash = sessionData.Hash
 		}
 
-		tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
-		if (err != nil) {
-                        return http.StatusUnauthorized, err
-                }
+		if (sessionId != "") {
+			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
+			if (err != nil) {
+                	        return http.StatusUnauthorized, err
+                	}
+		} else {
+			tokenData = &securityprotocol.TokenData{ Authenticationtoken: authentication.Token  }
+		}
 	}
 
 	// Add the authentication token to the request
@@ -228,14 +228,10 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	if (err != nil) {
 		return nil, err
 	}
-	if (authResponse.StatusCode != http.StatusOK) {
-		return nil, fmt.Errorf(fmt.Sprintf("Authentication failed url:%s body=%s", url, authBody))
-	}
-
-	return &OioIdwsRestAuthenticationInfo{ Token: response.ToString(), ExpiresIn: 10000 }, nil
+	return CreateAuthenticatonRequestInfoFromReponse(authResponse)
 }
 
 func DoOioIdwsRestDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
-
+	r.Header.Add("Authorization", tokenData.Authenticationtoken)
 	return nil
 }
