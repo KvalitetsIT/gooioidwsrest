@@ -27,10 +27,10 @@ import (
 
 const test_oio_idws_rest_header_name = "sessionxyx"
 
-func TestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
+func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *testing.T) {
 
 	// Given
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient()
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
 	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
 	recorder := httptest.NewRecorder()
 	sessionId := uuid.New().String()
@@ -59,10 +59,50 @@ func TestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
 }
 
-func TestCallServiceWithOioIdwsRestClientNoSessionId(t *testing.T) {
+func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithClaims(t *testing.T) {
 
         // Given
-        subject, _ := createTestOioIdwsRestHttpProtocolClient()
+	sessionAttributes := make(map[string]string)
+	sessionAttributeClaimName := "claim-b"
+	sessionAttributeClaimValue := "myclaimvalue1234"
+	sessionAttributes[sessionAttributeClaimName] = sessionAttributeClaimValue
+
+	mockSessionDataFetcher := MockSessionDataFetcher{ sessionData: securityprotocol.SessionData { SessionAttributes: sessionAttributes } }
+
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(mockSessionDataFetcher)
+        req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
+        recorder := httptest.NewRecorder()
+        sessionId := uuid.New().String()
+        req.Header.Add(test_oio_idws_rest_header_name, sessionId)
+
+        // When
+        httpCode, errProcess := subject.Handle(recorder, req)
+
+        // Then
+        assert.NilError(t, errProcess)
+        assert.Equal(t, http.StatusOK, httpCode)
+
+        result := recorder.Result()
+        responseBody, _ := ioutil.ReadAll(result.Body)
+        var jsonData map[string]interface{}
+        json.Unmarshal(responseBody, &jsonData)
+
+        headers := jsonData["headers"].(map[string]interface{})
+        authorization := headers["authorization"]
+        assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
+
+        sessionIdInHeader := headers[test_oio_idws_rest_header_name]
+        assert.Equal(t, sessionId, fmt.Sprintf("%s", sessionIdInHeader))
+
+        tokenData, _ := tokenCache.FindTokenDataForSessionId(sessionId)
+        assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
+}
+
+
+func TestCallServiceWithOioIdwsRestClientNoSessionIdNoSessionDataHandler(t *testing.T) {
+
+        // Given
+        subject, _ := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         recorder := httptest.NewRecorder()
 
@@ -86,7 +126,7 @@ func TestCallServiceWithOioIdwsRestClientNoSessionId(t *testing.T) {
         assert.Assert(t, (sessionIdInHeader == nil))
 }
 
-func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
+func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol.SessionDataFetcher) (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
 
 	mongoTokenCache, err := securityprotocol.NewMongoTokenCache("mongo", "testwsc", "mysessions")
 	if (err != nil) {
@@ -95,13 +135,6 @@ func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, 
 
 	mockService := new(MockService)
 
-
-//	var sessionDataFetcher *securityprotocol.ServiceCallSessionDataFetcher
- //       if (len(sessionFetchUrl) > 0) {
-   //             sessionDataFetcher = &securityprotocol.ServiceCallSessionDataFetcher{ SessionDataServiceEndpoint: sessionFetchUrl }
-    //    }
-
-
 	config := OioIdwsRestHttpProtocolClientConfig {
 		matchHandler: securityprotocol.MatchAllHandler,
 		SessionHeaderName: test_oio_idws_rest_header_name,
@@ -109,7 +142,7 @@ func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, 
 		TrustCertFiles: []string { "./testgooioidwsrest/sts/sts.cer", "./testgooioidwsrest/certificates/testservicea/testservicea.cer" },
 		ClientCertFile: "./testdata/medcom.cer",
 		ClientKeyFile: "./testdata/medcom.pem",
-		SessionDataFetcher: nil,
+		SessionDataFetcher: sessionDataFetcher,
 		ServiceEndpoint: "https://testservicea/test",
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
@@ -130,11 +163,25 @@ func createTestStsClient() *stsclient.StsClient {
         stsBlock, _ := pem.Decode([]byte(stsCert))
         stsCertToTrust, _ := x509.ParseCertificate(stsBlock.Bytes)
 
+type SessionDataFetcher interface {
+	GetSessionData(string, SessionIdHandler) (*SessionData, error)
+}
         stsClient, _ := stsclient.NewStsClient(stsCertToTrust, "./testdata/medcom.cer", "./testdata/medcom.pem", stsUrl)
 
 	return stsClient
 }
 */
+
+type MockSessionDataFetcher struct {
+
+	sessionData	securityprotocol.SessionData
+}
+
+func (mock MockSessionDataFetcher) GetSessionData(string, securityprotocol.SessionIdHandler) (*securityprotocol.SessionData, error) {
+
+	return &mock.sessionData, nil
+}
+
 
 type MockService struct {
 

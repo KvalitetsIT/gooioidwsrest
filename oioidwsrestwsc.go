@@ -40,7 +40,7 @@ type OioIdwsRestHttpProtocolClientConfig struct {
 	ServiceAudience		string
 	ServiceEndpoint		string
 
-	SessionDataFetcher	*securityprotocol.SessionDataFetcher
+	SessionDataFetcher	securityprotocol.SessionDataFetcher
 
 	Service			securityprotocol.HttpHandler
 }
@@ -56,7 +56,7 @@ type OioIdwsRestHttpProtocolClient struct {
 	tokenCache      	securityprotocol.TokenCache
 
 	sessionIdHandler	securityprotocol.SessionIdHandler
-	sessionDataFetcher	*securityprotocol.SessionDataFetcher
+	sessionDataFetcher	securityprotocol.SessionDataFetcher
 
 	stsClient		*stsclient.StsClient
 	httpClient		*http.Client
@@ -127,7 +127,7 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service)
 }
 
-func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher *securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -165,12 +165,10 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         	}
 
        		// Get sessiondata matching the session
-		if (client.sessionDataFetcher != nil) {
-	        	sessionData, err = (*client.sessionDataFetcher).GetSessionData(sessionId, client.sessionIdHandler)
-        		if (err != nil) {
-	        	        return http.StatusInternalServerError, err
-	        	}
-		}
+        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
+       		if (err != nil) {
+        	        return http.StatusInternalServerError, err
+        	}
 	}
 
 	if (tokenData == nil || (sessionData != nil && tokenData.Hash != sessionData.Hash) || sessionId == "") {
