@@ -38,7 +38,7 @@ services:
        - gooioidwsrest
 # Testservice
    testservicea:
-     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/oioidws-rest-wsp:650c062dbc1d117e5857cf955e217f294103b380
+     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/oioidws-rest-wsp:a4620d558d4be7224050f275e391340742bc8a36
      environment:
        - CONTEXT=test
        - MONGODB=mongo
@@ -48,10 +48,12 @@ services:
      volumes:
        - ./certificates/testservicea/testservicea.cer:/certificates/server.cert
        - ./certificates/testservicea/testservicea.key:/certificates/server.key
+     ports:
+       - "80:80"
      networks:
        - gooioidwsrest
    testservicea-wsp-samltokenvalidator:
-     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:650c062dbc1d117e5857cf955e217f294103b380
+     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:a4620d558d4be7224050f275e391340742bc8a36
      environment:
        - SERVER_PORT=8081
        - STS_CERTIFICATE=/certificate/sts.cer

@@ -69,25 +69,31 @@ type OioIdwsRestHttpProtocolClient struct {
 	service			securityprotocol.HttpHandler
 }
 
+func CreateCaCertPool(trustCertFiles []string) *x509.CertPool {
+
+        caCertPool := x509.NewCertPool()
+        for _, trustCertFile := range trustCertFiles {
+                trustCert, err := ioutil.ReadFile(trustCertFile)
+                if (err != nil) {
+                        panic(err)
+                }
+                trustBlock, _ := pem.Decode([]byte(trustCert))
+                if (err != nil) {
+                        panic(err)
+                }
+                certToTrust, err := x509.ParseCertificate(trustBlock.Bytes)
+                if (err != nil) {
+                        panic(err)
+                }
+                caCertPool.AddCert(certToTrust)
+        }
+	return caCertPool
+}
+
 func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig, tokenCache securityprotocol.TokenCache) *OioIdwsRestHttpProtocolClient {
 
 	// Truststore
-	caCertPool := x509.NewCertPool()
-	for _, trustCertFile := range config.TrustCertFiles {
-		trustCert, err := ioutil.ReadFile(trustCertFile)
-        	if (err != nil) {
-                	panic(err)
-        	}
-        	trustBlock, _ := pem.Decode([]byte(trustCert))
-        	if (err != nil) {
-                	panic(err)
-        	}
-        	certToTrust, err := x509.ParseCertificate(trustBlock.Bytes)
-        	if (err != nil) {
-                	panic(err)
-        	}
-		caCertPool.AddCert(certToTrust)
-	}
+	caCertPool := CreateCaCertPool(config.TrustCertFiles)
 
 	// Clientkey
         clientKeyPair, err := tls.LoadX509KeyPair(config.ClientCertFile, config.ClientKeyFile)
@@ -201,10 +207,15 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         return client.service.Handle(w, r)
 }
 
-func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, s *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
+func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
+	// Using session attributes as claims
 	claims := make(map[string]string)
-	// TODO map Claims from sessionattr in sessiondata
+	if (sessionData != nil) {
+		for sessionAttributeKey, sessionAttributeValue := range sessionData.SessionAttributes {
+			claims[sessionAttributeKey] = sessionAttributeValue
+		}
+	}
 
 	// Get SAML assertion from STS
         response, err := client.stsClient.GetToken(client.serviceAudience, claims)

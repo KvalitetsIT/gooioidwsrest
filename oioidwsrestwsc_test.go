@@ -8,10 +8,8 @@ import (
 
 	"net/http/httptest"
 
-//	"crypto/x509"
 	"crypto/tls"
 
-//	"encoding/pem"
 	"encoding/json"
 
 	"strings"
@@ -22,7 +20,6 @@ import (
 
 	uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
-//        stsclient "github.com/KvalitetsIT/gostsclient"
 )
 
 const test_oio_idws_rest_header_name = "sessionxyx"
@@ -96,6 +93,13 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithC
 
         tokenData, _ := tokenCache.FindTokenDataForSessionId(sessionId)
         assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
+
+	sessionDataFromWsp, err := getSessionDataFromWsp(fmt.Sprintf("%s", headers["session"]))
+	assert.NilError(t, err)
+        assert.Assert(t, (sessionDataFromWsp != nil))
+	userAttributeClaimBValues := sessionDataFromWsp.UserAttributes[sessionAttributeClaimName]
+	assert.Equal(t, 1, len(userAttributeClaimBValues))
+	assert.Equal(t, sessionAttributeClaimValue, userAttributeClaimBValues[0])
 }
 
 
@@ -151,6 +155,15 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 
 	return testClient, mongoTokenCache
 }
+
+
+func getSessionDataFromWsp(wspSessionId string) (*securityprotocol.SessionData, error) {
+
+      wspSessionDataFetcher := &securityprotocol.ServiceCallSessionDataFetcher{ SessionDataServiceEndpoint: "http://testservicea" }
+      sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{ HttpHeaderName: "session" }
+      return wspSessionDataFetcher.GetSessionData(wspSessionId, sessionIdHandler)
+}
+
 /*
 func createTestStsClient() *stsclient.StsClient {
 
