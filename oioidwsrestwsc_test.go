@@ -164,27 +164,6 @@ func getSessionDataFromWsp(wspSessionId string) (*securityprotocol.SessionData, 
       return wspSessionDataFetcher.GetSessionData(wspSessionId, sessionIdHandler)
 }
 
-/*
-func createTestStsClient() *stsclient.StsClient {
-
-	stsUrl := "https://sts/sts/service/sts"
-	stsCertFile := "./testgooioidwsrest/sts/sts.cer"
-        stsCert, err := ioutil.ReadFile(stsCertFile)
-	if (err != nil) {
-		panic(err)
-	}
-        stsBlock, _ := pem.Decode([]byte(stsCert))
-        stsCertToTrust, _ := x509.ParseCertificate(stsBlock.Bytes)
-
-type SessionDataFetcher interface {
-	GetSessionData(string, SessionIdHandler) (*SessionData, error)
-}
-        stsClient, _ := stsclient.NewStsClient(stsCertToTrust, "./testdata/medcom.cer", "./testdata/medcom.pem", stsUrl)
-
-	return stsClient
-}
-*/
-
 type MockSessionDataFetcher struct {
 
 	sessionData	securityprotocol.SessionData
