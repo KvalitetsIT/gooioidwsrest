@@ -8,10 +8,10 @@ import (
 
 	"net/http/httptest"
 
-	"crypto/x509"
+//	"crypto/x509"
 	"crypto/tls"
 
-	"encoding/pem"
+//	"encoding/pem"
 	"encoding/json"
 
 	"strings"
@@ -22,16 +22,16 @@ import (
 
 	uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
-        stsclient "github.com/KvalitetsIT/gostsclient"
+//        stsclient "github.com/KvalitetsIT/gostsclient"
 )
 
 const test_oio_idws_rest_header_name = "sessionxyx"
 
-func CTestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
+func TestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
 
 	// Given
-        subject, _ := createTestOioIdwsRestHttpProtocolClient()
-	req, _ := http.NewRequest("GET", "https://testservicea/test/echo", nil)
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient()
+	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
 	recorder := httptest.NewRecorder()
 	sessionId := uuid.New().String()
 	req.Header.Add(test_oio_idws_rest_header_name, sessionId)
@@ -49,15 +49,21 @@ func CTestCallServiceWithOioIdwsRestClientWithSession(t *testing.T) {
 	json.Unmarshal(responseBody, &jsonData)
 
 	headers := jsonData["headers"].(map[string]interface{})
-	authorization:= headers["authorization"]
+	authorization := headers["authorization"]
 	assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
+
+	sessionIdInHeader := headers[test_oio_idws_rest_header_name]
+	assert.Equal(t, sessionId, fmt.Sprintf("%s", sessionIdInHeader))
+
+	tokenData, _ := tokenCache.FindTokenDataForSessionId(sessionId)
+	assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
 }
 
 func TestCallServiceWithOioIdwsRestClientNoSessionId(t *testing.T) {
 
         // Given
         subject, _ := createTestOioIdwsRestHttpProtocolClient()
-        req, _ := http.NewRequest("GET", "https://testservicea/test/echo", nil)
+        req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         recorder := httptest.NewRecorder()
 
         // When
@@ -75,6 +81,9 @@ func TestCallServiceWithOioIdwsRestClientNoSessionId(t *testing.T) {
         headers := jsonData["headers"].(map[string]interface{})
         authorization:= headers["authorization"]
         assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
+
+	sessionIdInHeader := headers[test_oio_idws_rest_header_name]
+        assert.Assert(t, (sessionIdInHeader == nil))
 }
 
 func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
@@ -101,7 +110,7 @@ func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, 
 
 	return testClient, mongoTokenCache
 }
-
+/*
 func createTestStsClient() *stsclient.StsClient {
 
 	stsUrl := "https://sts/sts/service/sts"
@@ -117,7 +126,7 @@ func createTestStsClient() *stsclient.StsClient {
 
 	return stsClient
 }
-
+*/
 
 type MockService struct {
 
