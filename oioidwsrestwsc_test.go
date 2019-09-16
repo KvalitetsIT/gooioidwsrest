@@ -95,6 +95,13 @@ func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, 
 
 	mockService := new(MockService)
 
+
+//	var sessionDataFetcher *securityprotocol.ServiceCallSessionDataFetcher
+ //       if (len(sessionFetchUrl) > 0) {
+   //             sessionDataFetcher = &securityprotocol.ServiceCallSessionDataFetcher{ SessionDataServiceEndpoint: sessionFetchUrl }
+    //    }
+
+
 	config := OioIdwsRestHttpProtocolClientConfig {
 		matchHandler: securityprotocol.MatchAllHandler,
 		SessionHeaderName: test_oio_idws_rest_header_name,
@@ -102,6 +109,7 @@ func createTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, 
 		TrustCertFiles: []string { "./testgooioidwsrest/sts/sts.cer", "./testgooioidwsrest/certificates/testservicea/testservicea.cer" },
 		ClientCertFile: "./testdata/medcom.cer",
 		ClientKeyFile: "./testdata/medcom.pem",
+		SessionDataFetcher: nil,
 		ServiceEndpoint: "https://testservicea/test",
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
