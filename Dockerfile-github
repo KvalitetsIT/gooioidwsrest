@@ -1,0 +1,3 @@
+FROM bash:5.0.11
+ARG SSH_PRIVATE_KEY
+RUN echo "${SSH_PRIVATE_KEY}" > /id_rsa
