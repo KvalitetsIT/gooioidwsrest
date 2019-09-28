@@ -13,7 +13,7 @@ pipeline {
 			steps {
 				dir('testgooioidwsrest') {
 					sh 'docker-compose -f docker-compose-db.yml up -d'
-					sh 'sleep 2000'
+					sh 'sleep 2s'
 					sh 'docker-compose up -d'
 				}
 			}
@@ -30,7 +30,7 @@ pipeline {
 	post {
 		always {
 
-			dir('testenv') {
+			dir('testgooioidwsrest') {
 				sh 'docker-compose -f docker-compose-db.yml stop'
                                 sh 'docker-compose stop'
 				sh 'docker-compose -f docker-compose-db.yml rm -f'
