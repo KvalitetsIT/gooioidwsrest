@@ -30,4 +30,4 @@ RUN go get github.com/google/uuid
 # Kitcaddy module source
 COPY . /oioidwsrest/
 RUN go test oioidwsrest
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/caddy .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/oioidwsrest .

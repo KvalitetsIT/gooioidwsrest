@@ -1,0 +1,21 @@
+# We use the module we just built
+FROM kvalitetsit/gooioidwsrest as caddybuilder
+
+# Prepare for custom caddy build
+RUN mkdir /caddy
+WORKDIR /caddy
+
+RUN go mod init caddy
+RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig latest" >> go.mod
+RUN echo "replace oioidwsrest => ../oioidwsrest" >> go.mod
+
+# Kitcaddy module source
+COPY caddy-plugin /caddy/
+
+RUN go test caddy/caddyoioidwsrest
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/caddy .
+
+FROM abiosoft/caddy:1.0.1
+COPY --from=caddybuilder /go/bin/caddy /usr/bin/caddy
+RUN /usr/bin/caddy -version
+RUN /usr/bin/caddy -plugins

@@ -1,0 +1,23 @@
+:8080 {
+
+	tls off
+  
+	log stdout
+	errors stdout
+
+	oioidwsrestwsc {
+		sts_url	https://sts/sts/service/sts
+
+		client_cert_file /certificates/client.cer
+		client_key_file  /certificates/client.pem
+
+
+		service_endpoint	https://testservicea/test
+                service_audience	urn:kit:testa:servicea
+
+	}
+
+        proxy / https://testservicea {
+                transparent
+        }
+}

@@ -1,0 +1,16 @@
+version: '2'
+networks:
+  gooioidwsrest:
+    driver: bridge
+services:
+# Wsc
+   wsc:
+     image: kvalitetsit/caddy-gooioidwsrest
+     environment:
+       - mongo_host=mongo
+     volumes:
+       - ./wsc/Caddyfile-wsc:/etc/Caddyfile
+       - ./wsc/client/medcom.cer:/certificates/client.cer
+       - ./wsc/client/medcom.pem:/certificates/client.pem
+     ports:
+       - "8080:8080"
