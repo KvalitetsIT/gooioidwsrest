@@ -12,8 +12,8 @@ pipeline {
                 stage('Build Docker resouce images with to be used during build') {
                         steps {
                                 script {
-					docker.build("build-gooioidwsrestresources/sts", "-f Dockerfile-resources-sts testgooioidwsrest")
-                                        docker.build("build-gooioidwsrestresources/servicea", "-f Dockerfile-resources-servicea testgooioidwsrest")
+					docker.build("build-gooioidwsrestresources/sts", "-f Dockerfile-resources-sts ./testgooioidwsrest")
+                                        docker.build("build-gooioidwsrestresources/servicea", "-f Dockerfile-resources-servicea ./testgooioidwsrest")
                                 }
                         }
                 }
