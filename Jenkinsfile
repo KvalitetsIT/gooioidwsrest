@@ -15,7 +15,7 @@ pipeline {
 					sh 'docker-compose -f docker-compose-db.yml up -d'
 					sh 'sleep 2s'
 					sh 'docker-compose up -d'
-					sh 'sleep 5s'
+					sh 'sleep 3m'
 				}
 			}
 		}
