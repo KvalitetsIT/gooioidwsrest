@@ -48,8 +48,8 @@ services:
      volumes:
        - ./certificates/testservicea/testservicea.cer:/certificates/server.cert
        - ./certificates/testservicea/testservicea.key:/certificates/server.key
-     ports:
-       - "80:80"
+#     ports:
+#       - "80:80"
      networks:
        - gooioidwsrest
    testservicea-wsp-samltokenvalidator:
