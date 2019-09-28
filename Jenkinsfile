@@ -9,6 +9,15 @@ pipeline {
 			}
 		}
 
+                stage('Build Docker resouce images with to be used during build') {
+                        steps {
+                                script {
+					docker.build("build-gooioidwsrestresources/sts", "-f Dockerfile-resources-sts testgooioidwsrest")
+                                        docker.build("build-gooioidwsrestresources/servicea", "-f Dockerfile-resources-servicea testgooioidwsrest")
+                                }
+                        }
+                }
+
 		stage('Startup the testenvironment used by the integration tests') {
 			steps {
 				dir('testgooioidwsrest') {
@@ -19,6 +28,7 @@ pipeline {
 				}
 			}
 		}
+
 		stage('Build Docker image (oioidwsrest module)') {
 			steps {
 				script {

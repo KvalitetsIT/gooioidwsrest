@@ -3,15 +3,19 @@ networks:
   gooioidwsrest:
     driver: bridge
 services:
+# Resources
+   sts-resources:
+     image: build-gooioidwsrestresources/sts
+   servicea-resources:
+     image: build-gooioidwsrestresources/servicea
 # Sts
    sts:
      image: kitdocker.kvalitetsit.dk/kvalitetsit/sts-frontend:543492665993a4323f1d4fc94d266278d58764fb
      environment:
        - SERVER_NAME=sts
        - STS_HOST=sts-backend
-     volumes:
-       - ./sts/sts.cer:/certificates/sts.cer
-       - ./sts/sts.pem:/certificates/sts.pem
+     volumes_from:
+       - sts-resources:ro
      networks:
        - gooioidwsrest
    sts-backend:
@@ -30,10 +34,8 @@ services:
        - MYSQL_USERNAME=sts
        - MYSQL_PASSWORD=sts123
        - JSON_CLIENT_PATH=/clients/clients.json
-     volumes:
-       - ./sts/sts.cer:/certificates/sts.cer
-       - ./sts/sts.pem:/certificates/sts.pem
-       - ./sts/clients:/clients
+     volumes_from:
+       - sts-resources:ro
      networks:
        - gooioidwsrest
 # Testservice
@@ -45,24 +47,22 @@ services:
        - MONGODB_DATABASE=testwsp
        - ENDPOINT_URL=http://testservicea-backend/
        - SAML_VALIDATION_URL=http://testservicea-wsp-samltokenvalidator:8081/validate
-     volumes:
-       - ./certificates/testservicea/testservicea.cer:/certificates/server.cert
-       - ./certificates/testservicea/testservicea.key:/certificates/server.key
 #     ports:
 #       - "80:80"
+     volumes_from:
+       - servicea-resources:ro
      networks:
        - gooioidwsrest
    testservicea-wsp-samltokenvalidator:
      image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:a4620d558d4be7224050f275e391340742bc8a36
      environment:
        - SERVER_PORT=8081
-       - STS_CERTIFICATE=/certificate/sts.cer
-     volumes:
-       - ./sts:/certificate
+       - STS_CERTIFICATE=/sts/sts.cer
+     volumes_from:
+       - servicea-resources:ro
      networks:
        - gooioidwsrest
    testservicea-backend:
      image: mendhak/http-https-echo
      networks:
        - gooioidwsrest
-

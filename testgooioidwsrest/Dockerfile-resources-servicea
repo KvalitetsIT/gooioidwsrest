@@ -1,0 +1,8 @@
+FROM bash:4.4
+
+ADD ./certificates/testservicea/testservicea.cer /certificates/server.cert
+ADD ./certificates/testservicea/testservicea.key /certificates/server.key
+ADD ./sts/sts.cer /sts/sts.cer
+
+VOLUME /sts
+VOLUME /certificates
