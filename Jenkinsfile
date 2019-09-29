@@ -50,7 +50,7 @@ pipeline {
                 stage('Build Docker image (caddy module)') {
                         steps {
                                 script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile_caddy .")
+                                        docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile-caddy .")
                                 }
                         }
                 }
