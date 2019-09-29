@@ -6,8 +6,14 @@ services:
 # Resources
    sts-resources:
      image: build-gooioidwsrestresources/sts
+     build: 
+       context: .
+       dockerfile: Dockerfile-resources-sts
    servicea-resources:
      image: build-gooioidwsrestresources/servicea
+     build: 
+       context: .
+       dockerfile: Dockerfile-resources-servicea
 # Sts
    sts:
      image: kitdocker.kvalitetsit.dk/kvalitetsit/sts-frontend:543492665993a4323f1d4fc94d266278d58764fb
