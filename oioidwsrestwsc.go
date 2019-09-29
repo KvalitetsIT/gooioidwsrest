@@ -151,7 +151,9 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 
 func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
 
-	if (!client.matchHandler(r)) {
+	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle")
+
+	if (client.matchHandler != nil && !client.matchHandler(r)) {
 		// No match, just delegate
 		return client.service.Handle(w, r)
 	}
@@ -171,10 +173,12 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         	}
 
        		// Get sessiondata matching the session
-        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
-       		if (err != nil) {
-        	        return http.StatusInternalServerError, err
-        	}
+		if (client.sessionDataFetcher != nil) {
+	        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
+	       		if (err != nil) {
+	        	        return http.StatusInternalServerError, err
+	        	}
+		}
 	}
 
 	if (tokenData == nil || (sessionData != nil && tokenData.Hash != sessionData.Hash) || sessionId == "") {
@@ -209,6 +213,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
+	fmt.Println("Enter OioIdwsRestHttpProtocolClient.doClientAuthentication")
 	// Using session attributes as claims
 	claims := make(map[string]string)
 	if (sessionData != nil) {
@@ -218,8 +223,10 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 
 	// Get SAML assertion from STS
+	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to get SAML Assertion from STS with audience: %s", client.serviceAudience))
         response, err := client.stsClient.GetToken(client.serviceAudience, claims)
 	if (err != nil) {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -227,6 +234,7 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
 	encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
+	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to authenticate: %s", authBody))
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if (err != nil) {
 		return nil, err

@@ -11,6 +11,7 @@
 		client_cert_file /wsc/certificates/client.cer
 		client_key_file  /wsc/certificates/client.pem
 
+		trust_cert_files /wsc/trust/sts.cer
 
 		service_endpoint	https://testservicea/test
                 service_audience	urn:kit:testa:servicea

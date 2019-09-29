@@ -15,8 +15,8 @@ services:
        - mongo_host=mongo
      volumes_from:
        - wsc-resources:ro
-#     ports:
-#       - "8080:8080"
+     ports:
+       - "8080:8080"
      command:
       - "--log"
       - "stdout"
