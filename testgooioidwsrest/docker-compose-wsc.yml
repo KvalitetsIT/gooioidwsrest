@@ -3,8 +3,7 @@ networks:
   gooioidwsrest:
     driver: bridge
 services:
-# Config:
-  wsc-resources:
+   wsc-resources:
      image: build-gooioidwsrestresources/wsc
      build:
        context: .

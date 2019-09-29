@@ -19,6 +19,16 @@ pipeline {
                         }
                 }
 
+		stage('Make sure that the testenvironments starts from clean') {
+                       steps {
+                                dir('testgooioidwsrest') {
+					sh 'docker-compose -f docker-compose-db.yml rm -f'
+                                        sh 'docker-compose rm -f'
+					sh 'docker-compose -f docker-compose-wsc.yml rm -f'
+                                }
+                        }
+		}
+
 		stage('Startup the testenvironment used by the integration tests') {
 			steps {
 				dir('testgooioidwsrest') {
@@ -59,9 +69,6 @@ pipeline {
 				sh 'docker-compose -f docker-compose-db.yml stop'
                                 sh 'docker-compose -f docker-compose-wsc.yml stop'
                                 sh 'docker-compose stop'
-				sh 'docker-compose -f docker-compose-db.yml rm -f'
-                                sh 'docker-compose -f docker-compose-wsc.yml rm -f'
-                                sh 'docker-compose rm -f'
 			}
 		}
 	}
