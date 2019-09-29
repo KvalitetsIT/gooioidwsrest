@@ -14,6 +14,7 @@ pipeline {
                                 script {
 					docker.build("build-gooioidwsrestresources/sts", "-f ./testgooioidwsrest/Dockerfile-resources-sts ./testgooioidwsrest")
                                         docker.build("build-gooioidwsrestresources/servicea", "-f ./testgooioidwsrest/Dockerfile-resources-servicea ./testgooioidwsrest")
+                                        docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc ./testgooioidwsrest")
                                 }
                         }
                 }

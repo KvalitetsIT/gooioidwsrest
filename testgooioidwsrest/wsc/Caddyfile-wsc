@@ -8,8 +8,8 @@
 	oioidwsrestwsc {
 		sts_url	https://sts/sts/service/sts
 
-		client_cert_file /certificates/client.cer
-		client_key_file  /certificates/client.pem
+		client_cert_file /wsc/certificates/client.cer
+		client_key_file  /wsc/certificates/client.pem
 
 
 		service_endpoint	https://testservicea/test

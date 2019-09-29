@@ -3,17 +3,26 @@ networks:
   gooioidwsrest:
     driver: bridge
 services:
+# Config:
+  wsc-resources:
+     image: build-gooioidwsrestresources/wsc
+     build:
+       context: .
+       dockerfile: Dockerfile-resources-wsc
 # Wsc
    wsc:
      image: kvalitetsit/caddy-gooioidwsrest
      environment:
        - mongo_host=mongo
-     volumes:
-       - ./wsc/Caddyfile-wsc:/etc/Caddyfile
-       - ./wsc/client/medcom.cer:/certificates/client.cer
-       - ./wsc/client/medcom.pem:/certificates/client.pem
+     volumes_from:
+       - wsc-resources:ro
 #     ports:
 #       - "8080:8080"
+     command:
+      - "--log"
+      - "stdout"
+      - "--conf"
+      - "/wsc/config/Caddyfile-wsc"
      networks:
        - gooioidwsrest
 
