@@ -17,7 +17,7 @@ type OioIdwsRestAuthResponse struct {
 
 func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response) (*OioIdwsRestAuthenticationInfo, error) {
         if (authResponse.StatusCode != http.StatusOK) {
-                return nil, fmt.Errorf(fmt.Sprintf("Authentication failed"))
+                return nil, fmt.Errorf(fmt.Sprintf("Authentication failed with statusCode: %d", authResponse.StatusCode))
         }
 	responseBody, err := ioutil.ReadAll(authResponse.Body)
 	if (err != nil) {

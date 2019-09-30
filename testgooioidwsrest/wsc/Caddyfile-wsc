@@ -11,7 +11,7 @@
 		client_cert_file /wsc/certificates/client.cer
 		client_key_file  /wsc/certificates/client.pem
 
-		trust_cert_files /wsc/trust/sts.cer
+		trust_cert_files /wsc/trust/sts.cer /wsc/trust/testservicea.cer
 
 		service_endpoint	https://testservicea/test
                 service_audience	urn:kit:testa:servicea
@@ -20,5 +20,7 @@
 
         proxy / https://testservicea {
                 transparent
+		tls_client /wsc/certificates/client.cer /wsc/certificates/client.pem
+		insecure_skip_verify
         }
 }

@@ -186,6 +186,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		// No token, no session, or sessiondata has changed since issueing - run authentication
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if (err != nil) {
+			fmt.Println(err)
 			return http.StatusUnauthorized, err
 		}
 
@@ -197,6 +198,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		if (sessionId != "") {
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if (err != nil) {
+				fmt.Println(err)
                 	        return http.StatusUnauthorized, err
                 	}
 		} else {
@@ -237,12 +239,15 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to authenticate: %s", authBody))
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if (err != nil) {
+		fmt.Println(err)
 		return nil, err
 	}
+	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to parse response:"))
 	return CreateAuthenticatonRequestInfoFromReponse(authResponse)
 }
 
 func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
+	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doDecorateRequestWithAuthenticationToken token:%s", tokenData.Authenticationtoken))
 	r.Header.Add("Authorization", tokenData.Authenticationtoken)
 	return nil
 }

@@ -4,6 +4,12 @@ ADD  ./wsc/Caddyfile-wsc /wsc/config/Caddyfile-wsc
 ADD  ./wsc/client/medcom.cer /wsc/certificates/client.cer
 ADD  ./wsc/client/medcom.pem /wsc/certificates/client.pem
 
+ADD  ./wsc/client/medcom.cer /test/cert.cer
+ADD  ./wsc/client/medcom.pem /test/cert.pem
+
 ADD  ./sts/sts.cer /wsc/trust/sts.cer
 
+ADD  ./certificates/testservicea/testservicea.cer /wsc/trust/testservicea.cer
+
 VOLUME /wsc
+VOLUME /test
