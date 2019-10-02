@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 
 	"encoding/json"
+	"encoding/base64"
 
 	"strings"
 
@@ -55,6 +56,52 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *te
 	tokenData, _ := tokenCache.FindTokenDataForSessionId(sessionId)
 	assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
 }
+
+func TestCallServiceWithOioIdwsRestClientWithSessionIdAndExtraClaimsNoSessionDataHandler(t *testing.T) {
+
+	// Given
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
+        claimName := "claim-b"
+        claimValue := "myclaimvalue1234"
+	claims := []Claim { Claim{ Key: claimName, Value: claimValue } }
+	claimBytes, _ := json.Marshal(claims)
+	claimBytesEncoded := base64.URLEncoding.EncodeToString(claimBytes)
+	recorder := httptest.NewRecorder()
+	sessionId := uuid.New().String()
+	req.Header.Add(test_oio_idws_rest_header_name, sessionId)
+	req.Header.Add(HTTP_HEADER_X_CLAIMS, claimBytesEncoded)
+
+	// When
+	httpCode, errProcess := subject.Handle(recorder, req)
+
+	// Then
+	assert.NilError(t, errProcess)
+	assert.Equal(t, http.StatusOK, httpCode)
+
+	result := recorder.Result()
+	responseBody, _ := ioutil.ReadAll(result.Body)
+	var jsonData map[string]interface{}
+	json.Unmarshal(responseBody, &jsonData)
+
+	headers := jsonData["headers"].(map[string]interface{})
+	authorization := headers["authorization"]
+	assert.Assert(t, strings.HasPrefix(fmt.Sprintf("%s", authorization), "Holder-of-key"))
+
+	sessionIdInHeader := headers[test_oio_idws_rest_header_name]
+	assert.Equal(t, sessionId, fmt.Sprintf("%s", sessionIdInHeader))
+
+	tokenData, _ := tokenCache.FindTokenDataForSessionId(sessionId)
+	assert.Equal(t, fmt.Sprintf("%s", authorization), tokenData.Authenticationtoken)
+
+        sessionDataFromWsp, err := getSessionDataFromWsp(fmt.Sprintf("%s", headers["session"]))
+        assert.NilError(t, err)
+        assert.Assert(t, (sessionDataFromWsp != nil))
+        userAttributeClaimBValues := sessionDataFromWsp.UserAttributes[claimName]
+        assert.Equal(t, 1, len(userAttributeClaimBValues))
+        assert.Equal(t, claimValue, userAttributeClaimBValues[0])
+}
+
 
 func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithClaims(t *testing.T) {
 

@@ -21,6 +21,9 @@ import (
 )
 
 
+const HTTP_HEADER_X_CLAIMS = "X-Claims"
+
+
 type OioIdwsRestAuthenticationInfo struct {
 
         Token           string
@@ -188,8 +191,13 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		}
 	}
 
+	sessionData, err := AddExtraClaimsToSessionData(sessionId, sessionData, r)
+	if (err != nil) {
+		log.Println("[ERROR] failed add sessiondata from headers: ", err)
+	}
+
         fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 3")
-	if (tokenData == nil || (sessionData != nil && tokenData.Hash != sessionData.Hash) || sessionId == "") {
+	if (tokenData == nil || (sessionData != nil && (tokenData == nil || tokenData.Hash != sessionData.Hash)) || sessionId == "") {
 
 		// No token, no session, or sessiondata has changed since issueing - run authentication
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
