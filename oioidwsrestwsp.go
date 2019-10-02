@@ -1,32 +1,53 @@
 package oioidwsrest
 
 import (
-//	"crypto/x509"
-//	"io"
-//	"fmt"
-//	"net/http"
+	"crypto/x509"
+	"io"
+	"net/http"
+	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 )
-/*
+
 const HEADER_WWW_AUTHENTICATE = "WWW-Authenticate"
 const HEADER_AUTHORIZATION = "Authorization"
 
 
+type OioIdwsRestHttpProtocolServerConfig struct {
 
-type OioIdwsRestWsp struct {
-	Path    string
-	SessionStore *SessionStore
-	TokenAuthenticator *TokenAuthenticator
+	TrustCertFiles          []string
+
+	AudienceRestriction	string
+
+	Service                 *securityprotocol.HttpHandler
 }
 
-func NewOioIdwsRestWsp(sessionStore *SessionStore, tokenAuthenticator *TokenAuthenticator) *OioIdwsRestWsp{
+type OioIdwsRestWsp struct {
+
+	matchHandler		*securityprotocol.MatchHandler
+
+//	sessionStore		*securityprotocol.SessionStore
+
+	tokenAuthenticator	*TokenAuthenticator
+
+	Service                 *securityprotocol.HttpHandler
+}
+
+func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig) *OioIdwsRestWsp {
+
+	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true)
+
+        return NewOioIdwsRestWsp(/*nil,*/ tokenAuthenticator, nil, config.Service)
+}
+
+
+func NewOioIdwsRestWsp(/*sessionStore *SessionStore,*/ tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service *securityprotocol.HttpHandler) *OioIdwsRestWsp{
 	n := new(OioIdwsRestWsp)
-	n.SessionStore = sessionStore
-	n.TokenAuthenticator = tokenAuthenticator
+	//n.SessionStore = sessionStore
+	n.tokenAuthenticator = tokenAuthenticator
 	return n
 }
 
 
-func (a OioIdwsRestWsp) ServeHTTP(next httpHandler, w http.ResponseWriter, r *http.Request) (int, error) {
+func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
 
 
 	// Check that the request is a HTTPS request and that it contains a client certificate
@@ -41,16 +62,16 @@ func (a OioIdwsRestWsp) ServeHTTP(next httpHandler, w http.ResponseWriter, r *ht
 	// The request identifies a session, check that the session is valid and get it
 	// TODO: and that HoK is ok
 	if (sessionId != "") {
-		session, _ := a.SessionStore.GetValidSessionFromId(sessionId)
+		var session *securityprotocol.SessionData /*, _ := a.sessionStore.GetValidSessionFromId(sessionId)*/
 
 		if (session != nil) {
 			// The session id ok ... pass-through to next handler
-        		return next(w, r)
+        		// TODO kommenter ind return a.Service.Handle(w, r)
 		}
 	}
 
 	// If the request is not authenticated maybe it is a request for authentication?
-	createdSessionId, authErr := a.TokenAuthenticator.Authenticate(a.SessionStore, sslClientCertificate, r)
+	createdSessionId, _,  authErr := a.tokenAuthenticator.Authenticate(sslClientCertificate, r)
 	if (authErr == nil && createdSessionId != "") {
 		// Succesful authentication
 		io.WriteString(w, createdSessionId)
@@ -78,4 +99,4 @@ func getClientCertificate(req *http.Request) *x509.Certificate {
         }
 	return nil
 }
-*/
+
