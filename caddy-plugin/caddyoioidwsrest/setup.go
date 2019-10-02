@@ -101,6 +101,7 @@ func parseWscConfig(c *caddy.Controller) (*oioidwsrest.OioIdwsRestHttpProtocolCl
 
 	wscConfig := new(oioidwsrest.OioIdwsRestHttpProtocolClientConfig)
 	wscConfig.SessionHeaderName = DEFAULT_VALUE_SESSION_HEADER_NAME
+	wscConfig.SessionDataFetcher = new(securityprotocol.NilSessionDataFetcher)
 
 	// This parses the following config blocks
 	/*
@@ -227,6 +228,9 @@ func parseWscConfig(c *caddy.Controller) (*oioidwsrest.OioIdwsRestHttpProtocolCl
         if (len(wscConfig.ServiceEndpoint) == 0) {
                 return nil, nil, fmt.Errorf("service_endpoint must be set")
         }
+	if (tokenCache == nil) {
+		return nil, nil, fmt.Errorf(fmt.Sprintf("%s must be set", CONFIG_MONGO_DB))
+	}
 
 	return wscConfig, tokenCache, nil
 }

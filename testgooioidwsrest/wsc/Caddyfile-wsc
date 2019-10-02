@@ -6,6 +6,8 @@
 	errors stdout
 
 	oioidwsrestwsc {
+		mongo_db  testdbxyz
+
 		sts_url	https://sts/sts/service/sts
 
 		client_cert_file /wsc/certificates/client.cer

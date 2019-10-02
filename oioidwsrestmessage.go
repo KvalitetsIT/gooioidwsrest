@@ -3,6 +3,7 @@ package oioidwsrest
 import (
         "net/http"
 	"fmt"
+	"log"
 	"encoding/json"
 	"io/ioutil"
 )
@@ -26,6 +27,7 @@ func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response) (*Oi
 	var jsonResponse OioIdwsRestAuthResponse
         err = json.Unmarshal([]byte(responseBody), &jsonResponse)
 	if (err != nil) {
+                log.Println("[ERROR] error unmarshalling response: ", err)
 		return nil, err
 	}
         return &OioIdwsRestAuthenticationInfo{ Token: fmt.Sprintf("%s %s", jsonResponse.TokenType, jsonResponse.AccessToken), ExpiresIn: jsonResponse.ExpiresIn }, nil
