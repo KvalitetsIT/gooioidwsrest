@@ -15,7 +15,7 @@ services:
        - mongo_host=mongo
      volumes_from:
        - wsc-resources:ro
-     ports:
+#     ports:
 #       - "8080:8080"
 #       - "8070:8070"
      command:
