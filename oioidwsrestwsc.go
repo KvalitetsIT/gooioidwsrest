@@ -167,7 +167,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 2")
 	sessionId := client.sessionIdHandler.GetSessionIdFromHttpRequest(r)
 
-	var sessionData *securityprotocol.SessionData
+	var sessionData *securityprotocol.SessionData = nil
 	var tokenData *securityprotocol.TokenData
 	if (sessionId != "") {
 		var err error
@@ -245,8 +245,20 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 
 	// Get SAML assertion from STS
+	var response *stsclient.StsResponse
+	var err error
+
 	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to get SAML Assertion from STS with audience: %s", client.serviceAudience))
-        response, err := client.stsClient.GetToken(client.serviceAudience, claims)
+	if (sessionData != nil && len(sessionData.Authenticationtoken) > 0) {
+		// Decode it - it's base64 encoded
+		decodedToken, err := base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
+        	if (err != nil) {
+                	return nil, err
+        	}
+		response, err = client.stsClient.ActAs(client.serviceAudience, decodedToken, claims)
+	} else {
+        	response, err = client.stsClient.GetToken(client.serviceAudience, claims)
+	}
 	if (err != nil) {
                 log.Println("[ERROR] failed to get token from STS: ", err)
 		return nil, err

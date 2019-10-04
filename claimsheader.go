@@ -39,7 +39,7 @@ func AddExtraClaimsToSessionData(sessionId string, sessionData *securityprotocol
         if (sessionData != nil) {
                 resultData = sessionData
         } else {
-                resultData, _ = securityprotocol.CreateSessionData(sessionId, make(map[string][]string), time.Now())
+                resultData, _ = securityprotocol.CreateSessionData("", make(map[string][]string), time.Now())
         }
 
 	for _, claim := range claims {

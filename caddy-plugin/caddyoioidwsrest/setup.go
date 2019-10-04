@@ -1,6 +1,9 @@
 package caddyoioidwsrest
 
 import (
+        "net/http"
+        "crypto/tls"
+
 	"fmt"
 	"os"
 	"strconv"
@@ -12,6 +15,7 @@ import (
 
 const CONFIG_MONGO_DB = "mongo_db"
 const CONFIG_SESSION_HEADER_NAME = "session_header_name"
+const CONFIG_SESSION_DATA_URL = "session_data_url"
 const CONFIG_STS_URL = "sts_url"
 const CONFIG_TRUST_CERT_FILES = "trust_cert_files"
 const CONFIG_CLIENT_CERT_FILE = "client_cert_file"
@@ -98,6 +102,7 @@ func parseWscConfig(c *caddy.Controller) (*oioidwsrest.OioIdwsRestHttpProtocolCl
        	mongo_url := getMongoSettings()
 
 	var tokenCache *securityprotocol.MongoTokenCache
+	sessionDataUrl := ""
 
 	wscConfig := new(oioidwsrest.OioIdwsRestHttpProtocolClientConfig)
 	wscConfig.SessionHeaderName = DEFAULT_VALUE_SESSION_HEADER_NAME
@@ -194,6 +199,15 @@ func parseWscConfig(c *caddy.Controller) (*oioidwsrest.OioIdwsRestHttpProtocolCl
                                                 // only one audience per declaration
                                                 return nil, nil, c.ArgErr()
                                         }
+				case CONFIG_SESSION_DATA_URL:
+					if !c.NextArg() {
+                                                return nil, nil, c.ArgErr()
+                                        }
+                                        sessionDataUrl = c.Val()
+                                        if c.NextArg() {
+                                                // only one session_data_url per declaration
+                                                return nil, nil, c.ArgErr()
+                                        }
                                 case CONFIG_SERVICE_ENDPOINT:
                                        if !c.NextArg() {
                                                 return nil, nil, c.ArgErr()
@@ -228,6 +242,18 @@ func parseWscConfig(c *caddy.Controller) (*oioidwsrest.OioIdwsRestHttpProtocolCl
         if (len(wscConfig.ServiceEndpoint) == 0) {
                 return nil, nil, fmt.Errorf("service_endpoint must be set")
         }
+	if (len(sessionDataUrl) > 0) {
+
+		caCertPool := oioidwsrest.CreateCaCertPool(wscConfig.TrustCertFiles)
+		tlsConfig := &tls.Config{
+                	RootCAs:      caCertPool,
+		}
+        	transport := &http.Transport{TLSClientConfig: tlsConfig}
+        	client := &http.Client{Transport: transport}
+
+		wscConfig.SessionDataFetcher = securityprotocol.NewServiceCallSessionDataFetcher(sessionDataUrl, client)
+	}
+
 	if (tokenCache == nil) {
 		return nil, nil, fmt.Errorf(fmt.Sprintf("%s must be set", CONFIG_MONGO_DB))
 	}

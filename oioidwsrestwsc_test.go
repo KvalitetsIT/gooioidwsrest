@@ -28,7 +28,7 @@ const test_oio_idws_rest_header_name = "sessionxyx"
 func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *testing.T) {
 
 	// Given
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(nil)
 	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
 	recorder := httptest.NewRecorder()
 	sessionId := uuid.New().String()
@@ -60,7 +60,7 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *te
 func TestCallServiceWithOioIdwsRestClientWithSessionIdAndExtraClaimsNoSessionDataHandler(t *testing.T) {
 
 	// Given
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(nil)
 	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         claimName := "claim-b"
         claimValue := "myclaimvalue1234"
@@ -111,7 +111,7 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithC
 	sessionAttributeClaimValue := "myclaimvalue1234"
 	sessionAttributes[sessionAttributeClaimName] = sessionAttributeClaimValue
 
-	mockSessionDataFetcher := MockSessionDataFetcher{ sessionData: securityprotocol.SessionData { SessionAttributes: sessionAttributes } }
+	mockSessionDataFetcher := MockSessionDataFetcher{ sessionData: securityprotocol.SessionData{ SessionAttributes: sessionAttributes } }
 
         subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(mockSessionDataFetcher)
         req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
@@ -206,7 +206,7 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 
 func getSessionDataFromWsp(wspSessionId string) (*securityprotocol.SessionData, error) {
 
-      wspSessionDataFetcher := &securityprotocol.ServiceCallSessionDataFetcher{ SessionDataServiceEndpoint: "http://testservicea" }
+      wspSessionDataFetcher := securityprotocol.NewServiceCallSessionDataFetcher("http://testservicea", &http.Client{})
       sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{ HttpHeaderName: "session" }
       return wspSessionDataFetcher.GetSessionData(wspSessionId, sessionIdHandler)
 }
