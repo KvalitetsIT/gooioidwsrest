@@ -64,8 +64,10 @@ pipeline {
 
 		stage('Tag Docker image and push to registry') {
 			steps {
-				docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-					docker.image("kvalitetsit/caddy-gooioidwsrest").push("${scmInfo.GIT_COMMIT}")
+				script {
+					docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
+						docker.image("kvalitetsit/caddy-gooioidwsrest").push("${scmInfo.GIT_COMMIT}")
+					}
 				}
 			}
 		}
