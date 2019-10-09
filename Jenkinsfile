@@ -61,6 +61,12 @@ pipeline {
                                 }
                         }
                 }
+		stage('Tag Docker image and push to registry') {
+			docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
+				docker.image("kvalitetsit/caddy-gooioidwsrest").push("${scmInfo.GIT_COMMIT}")
+			}
+		}
+
 	}
 	post {
 		always {
