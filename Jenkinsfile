@@ -3,9 +3,11 @@ pipeline {
 
 	stages {
 
+		def scmInfo
+
 		stage('Clone repository') {
 			steps {
-				checkout scm
+				scmInfo = checkout scm
 			}
 		}
 
