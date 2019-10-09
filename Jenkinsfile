@@ -1,7 +1,7 @@
+def scmInfo
+
 pipeline {
 	agent any
-
-	def scmInfo
 
 	stages {
 
