@@ -1,9 +1,9 @@
 pipeline {
 	agent any
 
-	stages {
+	def scmInfo
 
-		def scmInfo
+	stages {
 
 		stage('Clone repository') {
 			steps {
