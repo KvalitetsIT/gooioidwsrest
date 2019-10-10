@@ -1,5 +1,3 @@
-def scmInfo
-
 pipeline {
 	agent any
 
@@ -7,7 +5,7 @@ pipeline {
 
 		stage('Clone repository') {
 			steps {
-				scmInfo: checkout scm
+				checkout scm
 			}
 		}
 
@@ -68,7 +66,7 @@ pipeline {
 			steps {
 				script {
 					docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-						docker.image("kvalitetsit/caddy-gooioidwsrest").push("${scmInfo.GIT_COMMIT}")
+						docker.image("kvalitetsit/caddy-gooioidwsrest").push("${env.GIT_COMMIT}")
 					}
 				}
 			}
