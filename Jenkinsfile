@@ -7,7 +7,7 @@ pipeline {
 
 		stage('Clone repository') {
 			steps {
-				scmInfo: checkout scm
+				scmInfo = checkout scm
 			}
 		}
 
