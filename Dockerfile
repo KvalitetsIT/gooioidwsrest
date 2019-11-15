@@ -20,7 +20,7 @@ RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmlds
 
 # Using Docker's layers to cache the following libraries
 RUN go get github.com/caddyserver/caddy
-RUN echo "kuk11 abc"
+RUN echo "kuk11 d1"
 RUN go get github.com/KvalitetsIT/gosecurityprotocol
 RUN go get github.com/KvalitetsIT/gostsclient
 RUN go get github.com/russellhaering/gosaml2
