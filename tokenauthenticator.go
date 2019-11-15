@@ -40,6 +40,11 @@ type TokenAuthenticator struct {
 	validateSamlConstraints bool
 }
 
+func (a AuthenticatedAssertion) GetAssertion() (*types.Assertion)  {
+
+	return a.assertion
+}
+
 func NewTokenAuthenticator(audienceRestriction string, certPaths []string, validateSamlConstraints bool) *TokenAuthenticator {
 
 	var certs []*x509.Certificate
