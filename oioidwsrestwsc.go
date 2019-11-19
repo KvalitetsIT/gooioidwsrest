@@ -233,9 +233,27 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
         return client.service.Handle(w, r)
 }
 
+func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken []byte, claims map[string]string) (string, error) {
+
+        // Get SAML assertion from STS
+        var response *stsclient.StsResponse
+        var err error
+
+        if (len(decodedToken) > 0) {
+                response, err = client.stsClient.ActAs(client.serviceAudience, decodedToken, claims)
+        } else {
+                response, err = client.stsClient.GetToken(client.serviceAudience, claims)
+        }
+        if (err != nil) {
+                log.Println("[ERROR] failed to get token from STS: ", err)
+                return "", err
+        }
+        encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
+	return encodedToken, nil
+}
+
 func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
-	fmt.Println("Enter OioIdwsRestHttpProtocolClient.doClientAuthentication")
 	// Using session attributes as claims
 	claims := make(map[string]string)
 	if (sessionData != nil) {
@@ -245,36 +263,29 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 
 	// Get SAML assertion from STS
-	var response *stsclient.StsResponse
+	decodedToken := []byte{}
 	var err error
-
-	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to get SAML Assertion from STS with audience: %s", client.serviceAudience))
 	if (sessionData != nil && len(sessionData.Authenticationtoken) > 0) {
 		// Decode it - it's base64 encoded
-		decodedToken, err := base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
+		decodedToken, err = base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
         	if (err != nil) {
                 	return nil, err
         	}
-		response, err = client.stsClient.ActAs(client.serviceAudience, decodedToken, claims)
-	} else {
-        	response, err = client.stsClient.GetToken(client.serviceAudience, claims)
 	}
+
+	// Get SAML assertion from STS
+	encodedToken, err := client.GetEncodedTokenFromSts(decodedToken, claims)
 	if (err != nil) {
-                log.Println("[ERROR] failed to get token from STS: ", err)
-		return nil, err
-	}
+                return nil, err
+        }
 
 	// Use that SAML assertion to authenticate
 	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
-	encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
-	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to authenticate: %s", authBody))
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if (err != nil) {
-                log.Println("[ERROR] failed to parse authentication response body: ", err)
 		return nil, err
 	}
-	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doClientAuthentication about to parse response:"))
 	return CreateAuthenticatonRequestInfoFromReponse(authResponse)
 }
 

@@ -177,6 +177,17 @@ func TestCallServiceWithOioIdwsRestClientNoSessionIdNoSessionDataHandler(t *test
         assert.Assert(t, (sessionIdInHeader == nil))
 }
 
+
+/**
+  *
+  *  UTILITES til testen
+  *
+  */
+func CreateTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
+
+        return createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+}
+
 func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol.SessionDataFetcher) (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
 
 	mongoTokenCache, err := securityprotocol.NewMongoTokenCache("mongo", "testwsc", "mysessions")

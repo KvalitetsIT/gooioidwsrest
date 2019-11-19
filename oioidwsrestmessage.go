@@ -27,7 +27,7 @@ func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response) (*Oi
 	var jsonResponse OioIdwsRestAuthResponse
         err = json.Unmarshal([]byte(responseBody), &jsonResponse)
 	if (err != nil) {
-                log.Println("[ERROR] error unmarshalling response: ", err)
+                log.Println(fmt.Sprintf("[ERROR] error unmarshalling response: %s", responseBody))
 		return nil, err
 	}
         return &OioIdwsRestAuthenticationInfo{ Token: fmt.Sprintf("%s %s", jsonResponse.TokenType, jsonResponse.AccessToken), ExpiresIn: jsonResponse.ExpiresIn }, nil

@@ -76,7 +76,7 @@ func NewTokenAuthenticator(audienceRestriction string, certPaths []string, valid
 
 func (t TokenAuthenticator) Authenticate(clientCert *x509.Certificate, r *http.Request) (string, *AuthenticatedAssertion, error) {
 	path := r.URL.Path
-	if (path == "/authenticate") {
+	if (path == "/authenticate" || path == "/token") {
 		body, err := ioutil.ReadAll(r.Body)
 		if (err != nil) {
 			return "", nil, err
