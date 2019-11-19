@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"bytes"
 
-	"log"
-
         "crypto/tls"
 	"crypto/rsa"
         "crypto/x509"
@@ -156,15 +154,12 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 
 func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
 
-	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 1")
-
 	if (client.matchHandler != nil && !client.matchHandler(r)) {
 		// No match, just delegate
 		return client.service.Handle(w, r)
 	}
 
 	// Check for session id
-	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 2")
 	sessionId := client.sessionIdHandler.GetSessionIdFromHttpRequest(r)
 
 	var sessionData *securityprotocol.SessionData = nil
@@ -173,19 +168,15 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		var err error
 
 		// Check if we have a token cached matching the session
-	        fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 2.1")
         	tokenData, err = client.tokenCache.FindTokenDataForSessionId(sessionId)
         	if (err != nil) {
-			log.Println("[ERROR] failed to find tokendata for session: ", err)
                 	return http.StatusInternalServerError, err
         	}
 
        		// Get sessiondata matching the session
-                fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 2.2")
 		if (client.sessionDataFetcher != nil) {
 	        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
 	       		if (err != nil) {
-                       		log.Println("[ERROR] failed get sessiondata: ", err)
 	        	        return http.StatusInternalServerError, err
 	        	}
 		}
@@ -193,16 +184,14 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 	sessionData, err := AddExtraClaimsToSessionData(sessionId, sessionData, r)
 	if (err != nil) {
-		log.Println("[ERROR] failed add sessiondata from headers: ", err)
+		return  http.StatusInternalServerError, err
 	}
 
-        fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 3")
 	if (tokenData == nil || (sessionData != nil && (tokenData == nil || tokenData.Hash != sessionData.Hash)) || sessionId == "") {
 
 		// No token, no session, or sessiondata has changed since issueing - run authentication
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if (err != nil) {
-                       	log.Println("[ERROR] failed to authenticate: ", err)
 			return http.StatusUnauthorized, err
 		}
 
@@ -211,11 +200,9 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 			hash = sessionData.Hash
 		}
 
-		fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 3.1")
 		if (sessionId != "") {
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if (err != nil) {
-	                        log.Println("[ERROR] failed to save authentication keys for session: ", err)
                 	        return http.StatusUnauthorized, err
                 	}
 		} else {
@@ -223,12 +210,10 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 		}
 	}
 
-	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 4")
 	// Add the authentication token to the request
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
 
 
-	fmt.Println("Enter OioIdwsRestHttpProtocolClient.Handle 5")
 	// Let the service do its work
         return client.service.Handle(w, r)
 }
@@ -245,7 +230,6 @@ func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken 
                 response, err = client.stsClient.GetToken(client.serviceAudience, claims)
         }
         if (err != nil) {
-                log.Println("[ERROR] failed to get token from STS: ", err)
                 return "", err
         }
         encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
@@ -290,7 +274,6 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 }
 
 func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
-	fmt.Println(fmt.Sprintf("OioIdwsRestHttpProtocolClient.doDecorateRequestWithAuthenticationToken token:%s", tokenData.Authenticationtoken))
 	r.Header.Add("Authorization", tokenData.Authenticationtoken)
 	return nil
 }

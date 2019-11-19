@@ -44,7 +44,7 @@ func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *te
 }
 
 
-func IgnoreTestAuthenticateUsingLegalTokenAndClientCertificate(t *testing.T) {
+func TestAuthenticateUsingLegalTokenAndClientCertificate(t *testing.T) {
 
 	// Given
         config := createConfig()
@@ -58,13 +58,17 @@ func IgnoreTestAuthenticateUsingLegalTokenAndClientCertificate(t *testing.T) {
 
 	// When
 	res, authErr := httpClient.Post(authUrl, "any", strings.NewReader(tokenRequest))
-	authInfo, authParseErr := CreateAuthenticatonRequestInfoFromReponse(res)
+	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(res)
 
 	// Then
+
+
 	assert.NilError(t, authErr)
 	assert.NilError(t, authParseErr)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "kuk", authInfo.Token)
+	assert.Equal(t, "Holder-of-key", oioIdwsRestAuth.TokenType)
+	assert.Assert(t, oioIdwsRestAuth.ExpiresIn > 0)
+	assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
 }
 
 

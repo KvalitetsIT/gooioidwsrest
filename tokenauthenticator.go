@@ -69,8 +69,6 @@ func NewTokenAuthenticator(audienceRestriction string, certPaths []string, valid
 	t.samlServiceProvider = sp
 	t.validateSamlConstraints = validateSamlConstraints
 
-	fmt.Println(fmt.Sprintf("Created TokenAuthenticator for audience: %s", audienceRestriction))
-
 	return t;
 }
 
