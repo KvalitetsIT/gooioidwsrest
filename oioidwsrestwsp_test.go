@@ -44,7 +44,7 @@ func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *te
 }
 
 
-func TestAuthenticateUsingLegalTokenAndClientCertificate(t *testing.T) {
+func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *testing.T) {
 
 	// Given
         config := createConfig()
@@ -52,23 +52,27 @@ func TestAuthenticateUsingLegalTokenAndClientCertificate(t *testing.T) {
         httpClient := httpServer.Client()
 	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
 	encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
-	tokenRequest := fmt.Sprintf("saml-token=%s", encodedToken)
+	authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
 	authUrl := fmt.Sprintf("%s/token", httpServer.URL)
-	fmt.Println(authUrl)
+	serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
 
 	// When
-	res, authErr := httpClient.Post(authUrl, "any", strings.NewReader(tokenRequest))
-	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(res)
+	authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
+	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp)
+	serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
+	serviceResp, serviceErr := httpClient.Do(serviceRequest)
 
 	// Then
-
-
 	assert.NilError(t, authErr)
 	assert.NilError(t, authParseErr)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NilError(t, serviceErr)
+
+	assert.Equal(t, http.StatusOK, authResp.StatusCode)
 	assert.Equal(t, "Holder-of-key", oioIdwsRestAuth.TokenType)
 	assert.Assert(t, oioIdwsRestAuth.ExpiresIn > 0)
 	assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
+
+	assert.Equal(t, http.StatusTeapot, serviceResp.StatusCode)
 }
 
 
@@ -83,9 +87,25 @@ func createConfig() *OioIdwsRestHttpProtocolServerConfig {
 
 	c := new(OioIdwsRestHttpProtocolServerConfig)
 	c.TrustCertFiles = []string { "./testgooioidwsrest/sts/sts.cer" }
-//	c.Service =
+	c.Service = new(mockService)
 //	c.AudienceRestriction =
         return c
+}
+
+type mockService struct {
+}
+
+func (m mockService) Handle(http.ResponseWriter, *http.Request) (int, error) {
+
+	return http.StatusTeapot, nil
+}
+
+func createServiceRequest(serviceUrl string, oioAuth *OioIdwsRestAuthResponse) *http.Request {
+
+	request, _ := http.NewRequest("GET", serviceUrl, nil)
+	authorizationValue := fmt.Sprintf("%s %s", oioAuth.TokenType, oioAuth.AccessToken)
+	request.Header.Set("Authorization", authorizationValue)
+	return request
 }
 
 func mockClientCertificate(req *http.Request) *x509.Certificate  {
@@ -118,8 +138,6 @@ func createOioIdwsWsp(config *OioIdwsRestHttpProtocolServerConfig, sessionCache 
 		w.WriteHeader(responseCode)
 		if (err != nil) {
 			w.Write([]byte(err.Error()))
-		} else {
-			fmt.Println("FEEEEEEEEEEEEEEEEEEEEEEEEEJL")
 		}
 	}
 

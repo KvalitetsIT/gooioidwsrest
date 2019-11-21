@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"crypto/sha1"
 	"encoding/hex"
+	"strings"
         uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 )
@@ -20,7 +21,7 @@ type OioIdwsRestHttpProtocolServerConfig struct {
 
 	AudienceRestriction	string
 
-	Service                 *securityprotocol.HttpHandler
+	Service                 securityprotocol.HttpHandler
 }
 
 type OioIdwsRestWsp struct {
@@ -31,7 +32,7 @@ type OioIdwsRestWsp struct {
 
 	tokenAuthenticator	*TokenAuthenticator
 
-	Service                 *securityprotocol.HttpHandler
+	Service                 securityprotocol.HttpHandler
 
 	ClientCertHandler	func(req *http.Request) *x509.Certificate
 }
@@ -44,11 +45,12 @@ func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, se
 }
 
 
-func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service *securityprotocol.HttpHandler) *OioIdwsRestWsp{
+func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service securityprotocol.HttpHandler) *OioIdwsRestWsp{
 	n := new(OioIdwsRestWsp)
 	n.sessionCache = sessionCache
 	n.tokenAuthenticator = tokenAuthenticator
 	n.ClientCertHandler = getClientCertificate
+	n.Service = service
 	return n
 }
 
@@ -63,7 +65,10 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 	}
 
 	// Get the session id
-	sessionId := a.getSessionId(r)
+	sessionId, err := a.getSessionId(r)
+	if (err != nil) {
+		return http.StatusUnauthorized, err
+	}
 
 	// The request identifies a session, check that the session is valid and get it
 	// TODO: and that HoK is ok
@@ -75,7 +80,7 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 
 		if (sessionData != nil) {
 			// The session id ok ... pass-through to next handler
-        		return (*a.Service).Handle(w, r)
+        		return a.Service.Handle(w, r)
 		}
 	}
 
@@ -116,9 +121,16 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
         return http.StatusUnauthorized, authErr
 }
 
-func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string) {
+func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string, error) {
 	sessionId := r.Header.Get(HEADER_AUTHORIZATION)
-	return sessionId
+	if (sessionId  != "") {
+		sessionIdParts := strings.Split(sessionId, " ")
+		if (len(sessionIdParts) == 2) {
+			return sessionIdParts[1], nil
+		}
+		return "", fmt.Errorf(fmt.Sprintf("%s header contains illegal value: %s", HEADER_AUTHORIZATION, sessionId))
+	}
+	return "", nil
 }
 
 func hashFromCertificate(certificate *x509.Certificate) (string) {
