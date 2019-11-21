@@ -43,6 +43,24 @@ func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *te
         assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
+func TestThatHokIsValidatedOnAuthentication(t *testing.T) {
+        // Given
+        config := createConfig()
+        httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
+        httpClient := httpServer.Client()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
+        authUrl := fmt.Sprintf("%s/token", httpServer.URL)
+
+        // When
+	wsp.ClientCertHandler = mockHijackerCertificate
+        authResp, _ := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
+
+        // Then
+        assert.Equal(t, http.StatusUnauthorized, authResp.StatusCode)
+}
+
 func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testing.T) {
         // Given
         config := createConfig()

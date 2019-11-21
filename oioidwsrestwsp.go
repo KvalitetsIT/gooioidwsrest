@@ -71,7 +71,6 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 	}
 
 	// The request identifies a session, check that the session is valid and get it
-	// TODO: and that HoK is ok
 	if (sessionId != "") {
 		sessionData, err := a.sessionCache.FindSessionDataForSessionId(sessionId)
 		if (err != nil) {
