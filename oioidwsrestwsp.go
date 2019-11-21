@@ -79,6 +79,13 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 		}
 
 		if (sessionData != nil) {
+
+			// Validate HoK
+			hashFromClientCert := hashFromCertificate(sslClientCertificate)
+			if (hashFromClientCert != sessionData.ClientCertHash) {
+				return http.StatusUnauthorized, fmt.Errorf("client certificate not HoK")
+			}
+
 			// The session id ok ... pass-through to next handler
         		return a.Service.Handle(w, r)
 		}
