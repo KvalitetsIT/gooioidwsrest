@@ -15,13 +15,11 @@ services:
        - mongo_host=mongo
      volumes_from:
        - wsc-resources:ro
-#     ports:
-#       - "8080:8080"
-#       - "8070:8070"
+     ports:
+       - "8080:8080"
+       - "8070:8070"
      command:
-      - "--log"
-      - "stdout"
-      - "--conf"
+      - "-config"
       - "/wsc/config/Caddyfile-wsc"
      networks:
        - gooioidwsrest

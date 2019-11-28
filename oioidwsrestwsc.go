@@ -153,6 +153,10 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 }
 
 func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
+	return client.HandleService(w, r, client.service)
+}
+
+func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
 	if (client.matchHandler != nil && !client.matchHandler(r)) {
 		// No match, just delegate
@@ -215,7 +219,7 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 
 	// Let the service do its work
-        return client.service.Handle(w, r)
+        return service.Handle(w, r)
 }
 
 func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken []byte, claims map[string]string) (string, error) {

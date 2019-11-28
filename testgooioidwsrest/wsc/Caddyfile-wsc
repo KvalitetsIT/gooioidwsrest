@@ -1,60 +1,69 @@
-:8080 {
-
-	tls off
-  
-	log stdout
-	errors stdout
-
-	oioidwsrestwsc {
-		mongo_db  testdbxyz
-
-		sts_url	https://sts/sts/service/sts
-
-		client_cert_file /wsc/certificates/client.cer
-		client_key_file  /wsc/certificates/client.pem
-
-		trust_cert_files /wsc/trust/sts.cer /wsc/trust/testservicea.cer
-
-		service_endpoint	https://testservicea/test
-                service_audience	urn:kit:testa:servicea
-
-	}
-
-        proxy / https://testservicea {
-                transparent
-		tls_client /wsc/certificates/client.cer /wsc/certificates/client.pem
-		insecure_skip_verify
-        }
+{
+   "apps":{
+      "tls": {
+      },
+      "http":{
+         "servers":{
+            "srv0":{
+               "automatic_https":{
+                  "disable": true
+	       },
+               "listen":[
+                  ":8080"
+               ],
+               "routes":[
+                  {
+                     "handle":[
+                        {
+                           "handler":"subroute",
+                           "routes":[
+                              {
+                                 "handle":[
+				    {
+                                       "handler": "oioidwsrestwsc",
+				       "mongo_host": "mongo",
+				       "mongo_db": "testdbxyz2",
+				       "sts_url": "https://sts/sts/service/sts",
+                                       "client_cert_file": "/wsc/certificates/client.cer",
+                                       "client_key_file": "/wsc/certificates/client.pem",
+                                       "trust_cert_files": ["/wsc/trust/sts.cer", "/wsc/trust/testservicea.cer" ],
+                                       "service_endpoint": "https://testservicea/test",
+                                       "service_audience": "urn:kit:testa:servicea",
+                                       "session_data_url": "https://testservicea"
+                                    },
+                                    {
+                                       "handler":"reverse_proxy",
+                                       "transport":{
+                                          "protocol":"http",
+					  "tls": {
+					        "insecure_skip_verify": true,
+						"client_certificate_file": "/wsc/certificates/client.cer",
+						"client_certificate_key_file": "/wsc/certificates/client.pem"
+					   },
+                                          "read_buffer_size":4096
+                                       },
+                                       "upstreams":[
+                                          {
+                                             "dial":"testservicea:443"
+                                          }
+                                       ]
+                                    }
+                                 ],
+                                 "match":[
+                                    {
+                                       "path":[
+                                          "/"
+                                       ]
+                                    }
+                                 ]
+                              }
+                           ]
+                        }
+                     ]
+                  }
+               ]
+            }
+         }
+      }
+   }
 }
-
-
-:8070 {
-
-        tls off
-
-        log stdout
-        errors stdout
-
-        oioidwsrestwsc {
-                mongo_db  testdbxyz2
-
-                sts_url https://sts/sts/service/sts
-
-                client_cert_file /wsc/certificates/client.cer
-                client_key_file  /wsc/certificates/client.pem
-
-                trust_cert_files /wsc/trust/sts.cer /wsc/trust/testservicea.cer
-
-                service_endpoint        https://testservicea/test
-                service_audience        urn:kit:testa:servicea
-
-		session_data_url	https://testservicea
-        }
-
-        proxy / https://testservicea {
-                transparent
-                tls_client /wsc/certificates/client.cer /wsc/certificates/client.pem
-                insecure_skip_verify
-        }
-}
-
