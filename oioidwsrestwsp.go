@@ -55,8 +55,11 @@ func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenti
 	return n
 }
 
-
 func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
+        return a.HandleService(w, r, a.Service)
+}
+
+func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
 
 	// Check that the request is a HTTPS request and that it contains a client certificate
@@ -92,7 +95,7 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 			}
 
 			// The session id ok ... pass-through to next handler
-        		return a.Service.Handle(w, r)
+        		return service.Handle(w, r)
 		}
 	}
 
