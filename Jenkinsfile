@@ -2,22 +2,21 @@ pipeline {
 	agent any
 
 	stages {
-
 		stage('Clone repository') {
 			steps {
 				checkout scm
 			}
 		}
 
-                stage('Build Docker resouce images with to be used during build') {
-                        steps {
-                                script {
-					docker.build("build-gooioidwsrestresources/sts", "-f ./testgooioidwsrest/Dockerfile-resources-sts --no-cache ./testgooioidwsrest")
-                                        docker.build("build-gooioidwsrestresources/servicea", "-f ./testgooioidwsrest/Dockerfile-resources-servicea --no-cache ./testgooioidwsrest")
-                                        docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc --no-cache ./testgooioidwsrest")
-                                }
-                        }
-                }
+		stage('Build Docker resouce images with to be used during build') {
+				steps {
+						script {
+			docker.build("build-gooioidwsrestresources/sts", "-f ./testgooioidwsrest/Dockerfile-resources-sts --no-cache ./testgooioidwsrest")
+								docker.build("build-gooioidwsrestresources/servicea", "-f ./testgooioidwsrest/Dockerfile-resources-servicea --no-cache ./testgooioidwsrest")
+								docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc --no-cache ./testgooioidwsrest")
+						}
+				}
+		}
 
 		stage('Make sure that the testenvironments starts from clean') {
                        steps {
@@ -47,27 +46,27 @@ pipeline {
 				}
 			}
 		}
-                stage('Build Docker image (caddy module)') {
-                        steps {
-                                script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile-caddy .")
-                                }
-                        }
-                }
-                stage('Build Docker image (caddy templates)') {
-                        steps {
-                                script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
-                                }
-                        }
-                }
-                stage('Run integration tests for caddy module (wsc)') {
-                        steps {
-                                dir('testgooioidwsrest') {
-                                        sh 'docker-compose -f docker-compose-wsc.yml up -d'
-                                }
-                        }
-                }
+		stage('Build Docker image (caddy module)') {
+				steps {
+						script {
+								docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile-caddy .")
+						}
+				}
+		}
+		stage('Build Docker image (caddy templates)') {
+				steps {
+						script {
+								docker.build("kvalitetsit/caddy-gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
+						}
+				}
+		}
+		stage('Run integration tests for caddy module (wsc)') {
+				steps {
+						dir('testgooioidwsrest') {
+								sh 'docker-compose -f docker-compose-wsc.yml up -d'
+						}
+				}
+		}
 
 		stage('Tag Docker image and push to registry') {
 			steps {
@@ -79,15 +78,15 @@ pipeline {
 			}
 		}
 
-                stage('Tag Docker image for templates and push to registry') {
-                        steps {
-                                script {
-                                        docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-                                                docker.image("kvalitetsit/caddy-gooioidwsrest-templates").push("${env.GIT_COMMIT}")
-                                        }
-                                }
-                        }
-                }
+		stage('Tag Docker image for templates and push to registry') {
+				steps {
+						script {
+								docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
+										docker.image("kvalitetsit/caddy-gooioidwsrest-templates").push("${env.GIT_COMMIT}")
+								}
+						}
+				}
+		}
 	}
 	post {
 		always {
