@@ -1,6 +1,7 @@
 FROM kit/git as sshsecret
 
-FROM golang:1.12.7 as builder
+#1.12.7
+FROM golang:1.13.4 as builder
 ENV GO111MODULE=on
 
 # add credentials on build and make sure github.xom is accepted
@@ -18,14 +19,16 @@ RUN go mod init oioidwsrest
 
 RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig latest" >> go.mod
 
+
+ENV GOPRIVATE="github.com/KvalitetsIT/gosecurityprotocol,github.com/KvalitetsIT/gostsclient"
 # Using Docker's layers to cache the following libraries
-RUN go get github.com/caddyserver/caddy
+#RUN go get github.com/caddyserver/caddy
 RUN echo "kuk11 d224"
+RUN go get github.com/google/uuid
 RUN go get github.com/KvalitetsIT/gosecurityprotocol
 RUN go get github.com/KvalitetsIT/gostsclient
 RUN go get github.com/russellhaering/gosaml2
 RUN go get gotest.tools/assert
-RUN go get github.com/google/uuid
 
 # Kitcaddy module source
 COPY . /oioidwsrest/

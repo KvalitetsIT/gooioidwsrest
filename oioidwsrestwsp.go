@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"strings"
+	"encoding/json"
         uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 )
@@ -54,8 +55,11 @@ func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenti
 	return n
 }
 
-
 func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
+        return a.HandleService(w, r, a.Service)
+}
+
+func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
 
 	// Check that the request is a HTTPS request and that it contains a client certificate
@@ -85,8 +89,13 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
 				return http.StatusUnauthorized, fmt.Errorf("client certificate not HoK")
 			}
 
+			// Check if the user is requesting sessiondata
+			if (isRequestForSessionData(r)) {
+				return handleRequestForSessionData(sessionData, w, r)
+			}
+
 			// The session id ok ... pass-through to next handler
-        		return a.Service.Handle(w, r)
+        		return service.Handle(w, r)
 		}
 	}
 
@@ -137,6 +146,26 @@ func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string, error) {
 		return "", fmt.Errorf(fmt.Sprintf("%s header contains illegal value: %s", HEADER_AUTHORIZATION, sessionId))
 	}
 	return "", nil
+}
+
+func isRequestForSessionData(r *http.Request) (bool) {
+
+	path := r.URL.Path
+        if (path == "/getsessiondata") {
+		return (http.MethodGet == r.Method)
+	}
+	return false
+}
+
+func handleRequestForSessionData(sessionData *securityprotocol.SessionData, w http.ResponseWriter, r *http.Request) (int, error) {
+
+	sessionDataBytes, marshalErr := json.Marshal(sessionData)
+	if (marshalErr != nil) {
+		return http.StatusInternalServerError, marshalErr
+	}
+	w.Write(sessionDataBytes)
+
+	return http.StatusOK, nil
 }
 
 func hashFromCertificate(certificate *x509.Certificate) (string) {

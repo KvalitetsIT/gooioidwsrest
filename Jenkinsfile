@@ -54,6 +54,13 @@ pipeline {
                                 }
                         }
                 }
+                stage('Build Docker image (caddy templates)') {
+                        steps {
+                                script {
+                                        docker.build("kvalitetsit/caddy-gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
+                                }
+                        }
+                }
                 stage('Run integration tests for caddy module (wsc)') {
                         steps {
                                 dir('testgooioidwsrest') {
@@ -72,6 +79,15 @@ pipeline {
 			}
 		}
 
+                stage('Tag Docker image for templates and push to registry') {
+                        steps {
+                                script {
+                                        docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
+                                                docker.image("kvalitetsit/caddy-gooioidwsrest-templates").push("${env.GIT_COMMIT}")
+                                        }
+                                }
+                        }
+                }
 	}
 	post {
 		always {
