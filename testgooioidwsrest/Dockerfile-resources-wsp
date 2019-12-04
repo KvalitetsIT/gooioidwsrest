@@ -1,4 +1,4 @@
-FROM kvalitetsit/caddy-gooioidwsrest-templates
+FROM kvalitetsit/gooioidwsrest-templates
 
 ADD ./wsp/testserviceaa-ssl.crt /ssl/testserviceaa-ssl.crt
 ADD ./wsp/testserviceaa-ssl.key /ssl/testserviceaa-ssl.key

@@ -42,21 +42,21 @@ pipeline {
 		stage('Build Docker image (oioidwsrest module)') {
 			steps {
 				script {
-					docker.build("kvalitetsit/gooioidwsrest", "--network testgooioidwsrest_gooioidwsrest -f Dockerfile .")
+					docker.build("kvalitetsit/gooioidwsrest-module", "--network testgooioidwsrest_gooioidwsrest -f Dockerfile .")
 				}
 			}
 		}
                 stage('Build Docker image (caddy module)') {
                         steps {
                                 script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile-caddy .")
+                                        docker.build("kvalitetsit/gooioidwsrest", "-f Dockerfile-caddy .")
                                 }
                         }
                 }
                 stage('Build Docker image (caddy templates)') {
                         steps {
                                 script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
+                                        docker.build("kvalitetsit/gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
                                 }
                         }
                 }
@@ -85,9 +85,8 @@ pipeline {
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
-					docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-						docker.image("kvalitetsit/caddy-gooioidwsrest").push("${env.GIT_COMMIT}")
-					}
+//               				docker.image("kvalitetsit/gooioidwsrest").push("${env.GIT_COMMIT}")
+        				docker.image("kvalitetsit/gooioidwsrest").push("dev")
 				}
 			}
 		}
@@ -95,9 +94,8 @@ pipeline {
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
                                 script {
-                                        docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-                                                docker.image("kvalitetsit/caddy-gooioidwsrest-templates").push("${env.GIT_COMMIT}")
-                                        }
+ //                                       docker.image("kvalitetsit/gooioidwsrest-templates").push("${env.GIT_COMMIT}")
+                                        docker.image("kvalitetsit/gooioidwsrest-templates").push("dev")
                                 }
                         }
                 }
