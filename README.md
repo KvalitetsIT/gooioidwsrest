@@ -22,11 +22,14 @@ For WSC findes to forskellige templates:
 * /caddyfiletemplates/Caddyfile-wsc-nosessiondata: En "standalone" WSC (dvs uden WSC_SESSION_DATA_URL)
 
 Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes:
+
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN  | Den HTTP port, som containeren skal lytte på | 8080  |
-WSC_STS_URL | URL, der udpeger STS Issue endpoint | https://www.myorg.dk/sts/service/sts |
-WSC_SERVICE_AUDIENCE | Audience, der bedes om i forhold til STS'ens udstedelse af SAML tokens | urn:kit:testa:servicea |
+LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
+MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
+WSC_STS_URL                 | URL, der udpeger STS Issue endpoint            | https://www.myorg.dk/sts/service/sts |
+WSC_SERVICE_AUDIENCE        | Audience, der bedes om i forhold til STS'ens udstedelse af SAML tokens | urn:kit:testa:servicea |
 WSC_CLIENT_CERTIFICATE_FILE | Fil, der udpeger klientens certifikat | /config/client.cer |
 WSC_CLIENT_KEY_FILE | Fil, der udpeger klientens private nøgle | /config/client.key |
 WSC_TRUST_CERT_FILES | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer", "/wsc/trust/testssl.cer" |
