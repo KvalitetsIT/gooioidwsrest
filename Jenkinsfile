@@ -42,21 +42,21 @@ pipeline {
 		stage('Build Docker image (oioidwsrest module)') {
 			steps {
 				script {
-					docker.build("kvalitetsit/gooioidwsrest", "--network testgooioidwsrest_gooioidwsrest -f Dockerfile .")
+					docker.build("kvalitetsit/gooioidwsrest-module", "--network testgooioidwsrest_gooioidwsrest -f Dockerfile .")
 				}
 			}
 		}
                 stage('Build Docker image (caddy module)') {
                         steps {
                                 script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest", "-f Dockerfile-caddy .")
+                                        docker.build("kvalitetsit/gooioidwsrest", "-f Dockerfile-caddy .")
                                 }
                         }
                 }
                 stage('Build Docker image (caddy templates)') {
                         steps {
                                 script {
-                                        docker.build("kvalitetsit/caddy-gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
+                                        docker.build("kvalitetsit/gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
                                 }
                         }
                 }
@@ -85,9 +85,16 @@ pipeline {
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
-					docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-						docker.image("kvalitetsit/caddy-gooioidwsrest").push("${env.GIT_COMMIT}")
-					}
+        				def image = docker.image("kvalitetsit/gooioidwsrest").
+                                        image.push("dev")
+
+                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
+                                        {
+                                                echo "Tagging version."
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push('latest')
+                                        }
+
 				}
 			}
 		}
@@ -95,8 +102,14 @@ pipeline {
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
                                 script {
-                                        docker.withRegistry('https://kitdocker.kvalitetsit.dk/') {
-                                                docker.image("kvalitetsit/caddy-gooioidwsrest-templates").push("${env.GIT_COMMIT}")
+                                        def image = docker.image("kvalitetsit/gooioidwsrest-templates")
+                                        image.push("dev")
+
+                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
+                                        {
+                                                echo "Tagging version."
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push('latest')
                                         }
                                 }
                         }

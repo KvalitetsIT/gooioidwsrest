@@ -24,7 +24,7 @@ services:
      volumes:
        - "./config_out:/config"
    testserviceaa:
-     image: kvalitetsit/caddy-gooioidwsrest
+     image: kvalitetsit/gooioidwsrest
      volumes_from:
        - wsp-resources:ro
 #     ports:

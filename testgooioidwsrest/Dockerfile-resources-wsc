@@ -1,4 +1,4 @@
-FROM kvalitetsit/caddy-gooioidwsrest-templates
+FROM kvalitetsit/gooioidwsrest-templates
 
 ADD  ./wsc/client/medcom.cer /wsc/certificates/client.cer
 ADD  ./wsc/client/medcom.pem /wsc/certificates/client.pem
