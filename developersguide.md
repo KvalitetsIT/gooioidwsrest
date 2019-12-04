@@ -1,31 +1,3 @@
-# OIO IDWS REST
-Er et Docker image, der indeholder implementationer af hhv
-* Web Service Consumer (WSC)
-* Web Service Producer (WSP)
-For sikkerhedsprotokollen OIO IDWS REST
-
-Både WSC og WSP er lavet som moduler til open source web serveren [Caddy](https://caddyserver.com/).
-Til caching af hhv. tokens og sessions anvendes MongoDb.
-
-konfigureres som dokumenteret i vejledningerne til Caddy.
-
-For at gøre konfigurationen lettere kan du anvende imaget til at generere en passende konfigurationsfil.
-
-Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes:
-
-
-Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
---------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
-WSC_STS_URL                 | URL, der udpeger STS Issue endpoint            | https://www.myorg.dk/sts/service/sts |
-WSC_CLIENT_CERTIFICATE_FILE | Fil, der udpeger klientens certifikat          | /config/client.cer                   |
-WSC_CLIENT_KEY_FILE         | Fil, der udpeger klientens private nøgle       | /config/client.key                   |
-WSC_TRUST_CERT_FILES        | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer", "/wsc/trust/testssl.cer" |
-
-
-Ved hjælp af WSC bliver det let at kalde en Web service der er sikret med OIO IDWS REST.
-
-
 # gooioidwdrest
 
 # Opstart af udviklingsmiljø                              
