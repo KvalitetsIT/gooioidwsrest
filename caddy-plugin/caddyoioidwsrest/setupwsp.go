@@ -7,7 +7,6 @@ import (
 	"oioidwsrest"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 	"net/http"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
@@ -36,11 +35,15 @@ func (m CaddyOioIdwsRestWsp) ServeHTTP(w http.ResponseWriter, r *http.Request, n
 	nextService := new(CaddyService)
 	nextService.Handler = next
 
+	fmt.Println("CADDYWSP 1")
 	httpCode, err := m.ProviderProtocol.HandleService(w, r, nextService)
+	fmt.Println(fmt.Sprintf("CADDYWSP 2 returcode:%d  ok?%d", httpCode, http.StatusOK))
 	if (httpCode != http.StatusOK) {
+		fmt.Println("CADDYWSP 3")
 		return caddyhttp.Error(httpCode, err)
 	}
-	return err
+
+	return nil
 }
 
 

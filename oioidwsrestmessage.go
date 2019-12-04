@@ -30,6 +30,7 @@ func CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse *http.Response) (
         if (err != nil) {
                 return nil, err
         }
+
         var jsonResponse OioIdwsRestAuthResponse
         err = json.Unmarshal([]byte(responseBody), &jsonResponse)
         if (err != nil) {
@@ -61,6 +62,7 @@ func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprot
 	if (err != nil) {
 		return http.StatusUnauthorized, err
 	}
+	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, string(payload))
 
 	return http.StatusOK, nil

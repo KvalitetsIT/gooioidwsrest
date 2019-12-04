@@ -35,6 +35,8 @@ type OioIdwsRestWsp struct {
 
 	Service                 securityprotocol.HttpHandler
 
+	HoK			bool
+
 	ClientCertHandler	func(req *http.Request) *x509.Certificate
 }
 
@@ -52,6 +54,7 @@ func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenti
 	n.tokenAuthenticator = tokenAuthenticator
 	n.ClientCertHandler = getClientCertificate
 	n.Service = service
+	n.HoK = true
 	return n
 }
 
@@ -64,7 +67,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 
 	// Check that the request is a HTTPS request and that it contains a client certificate
         sslClientCertificate := a.ClientCertHandler(r)
-	if (sslClientCertificate == nil) {
+	if (a.HoK && sslClientCertificate == nil) {
                 return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
 	}
 
@@ -85,7 +88,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 
 			// Validate HoK
 			hashFromClientCert := hashFromCertificate(sslClientCertificate)
-			if (hashFromClientCert != sessionData.ClientCertHash) {
+			if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
 				return http.StatusUnauthorized, fmt.Errorf("client certificate not HoK")
 			}
 

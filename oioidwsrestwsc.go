@@ -217,7 +217,6 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 	// Add the authentication token to the request
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
 
-
 	// Let the service do its work
         return service.Handle(w, r)
 }
@@ -277,7 +276,7 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	return CreateAuthenticatonRequestInfoFromReponse(authResponse)
 }
 
-func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
+func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) (error) {
 	r.Header.Add("Authorization", tokenData.Authenticationtoken)
 	return nil
 }

@@ -1,0 +1,61 @@
+{
+	"apps": {
+		"tls": {
+			"certificates": {
+				"load_files": [
+					{
+						"certificate": "/ssl/testserviceaa-ssl.crt",
+						"key": "/ssl/testserviceaa-ssl.key",
+						"format": "pem",
+						"tags": []
+					}
+				]
+			}
+		},
+		"http": {
+			"servers": {
+				"myserver": {
+					"listen": [":443"],
+					"strict_sni_host": false,
+					"tls_connection_policies": [{
+                                                "client_authentication": {
+                                                        "require": true
+                                                }
+                                        }],
+                                        "logs": {
+                                        },
+					"routes": [
+						{
+							"match": [
+							        { 
+									"host": [ "testserviceaa" ,"*" ] 
+								}
+                                                        ],
+							"handle": [
+                                                               {
+                                                                        "handler": "oioidwsrestwsp",
+                                                                        "mongo_host": "mongo",
+                                                                        "mongo_db": "testwsp2",
+                                                                        "trust_cert_files": [ "/wsp/trust/sts.cer" ],
+                                                                        "audience_restriction": "urn:kit:testa:servicea"
+                                                                },
+								{
+									"handler": "reverse_proxy",
+									"transport": {
+										"protocol": "http",
+										"read_buffer_size":4096
+									},
+									"upstreams":[
+										{
+											"dial":"testservicea-backend:80"
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}
+}

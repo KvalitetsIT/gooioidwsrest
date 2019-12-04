@@ -1,0 +1,36 @@
+version: '2'
+networks:
+  gooioidwsrest:
+    driver: bridge
+services:
+   wsp-resources:
+     image: build-gooioidwsrestresources/wsp
+     build:
+       context: .
+       dockerfile: Dockerfile-resources-wsp
+     environment:
+       - TEMPLATE_FILE=/caddyfiletemplates/Caddyfile-wsp
+       - CADDYFILE=/config/.caddyout-wsp
+       - SSL_HOST_NAME=testserviceaa
+       - LISTEN_PORT=8443
+       - MONGO_HOST=mongo
+       - MONGO_DATABASE=testwsp2
+       - WSP_SSL_CERTIFICATE_FILE=/ssl/testserviceaa-ssl.crt
+       - WSP_SSL_KEY_FILE=/ssl/testserviceaa-ssl.key
+       - WSP_BACKEND_HOST=testservicea-backend
+       - WSP_BACKEND_PORT=80
+       - WSP_AUDIENCE_RESTRICTION=urn:kit:testa:servicea
+       - WSP_TRUST_CERT_FILES="/wsp/trust/sts.cer"
+     volumes:
+       - "./config_out:/config"
+   testserviceaa:
+     image: kvalitetsit/caddy-gooioidwsrest
+     volumes_from:
+       - wsp-resources:ro
+#     ports:
+#       - "8443:443"
+     command:
+      - "-config"
+      - "/wsp/Caddyfile-wsp"
+     networks:
+       - gooioidwsrest

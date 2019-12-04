@@ -9,42 +9,42 @@ services:
        context: .
        dockerfile: Dockerfile-resources-wsc
      environment:
-       - TEMPLATE_FILE=/caddyfiletemplates/Caddyfile-wsc
-       - CADDYFILE=/config/.caddyout1
+       - TEMPLATE_FILE=/caddyfiletemplates/Caddyfile-wsc-nosessiondata
+       - CADDYFILE=/config/caddyout-wsc-nosessiondata
        - LISTEN_PORT=8070
        - MONGO_HOST=mongo
        - MONGO_DATABASE=testddsfz2
        - WSC_STS_URL=https://sts/sts/service/sts
        - WSC_CLIENT_CERTIFICATE_FILE=/wsc/certificates/client.cer
        - WSC_CLIENT_KEY_FILE=/wsc/certificates/client.pem
-       - WSC_SERVICE_ENDPOINT_HOST=testservicea
+       - WSC_SERVICE_ENDPOINT_HOST=testserviceaa
        - WSC_SERVICE_ENDPOINT_PORT=443
        - WSC_SERVICE_ENDPOINT_CONTEXT=test
        - WSC_SERVICE_AUDIENCE=urn:kit:testa:servicea
        - WSC_SESSION_DATA_URL=https://testservicea
-       - WSC_TRUST_CERT_FILES="/wsc/trust/sts.cer", "/wsc/trust/testservicea.cer"
+       - WSC_TRUST_CERT_FILES="/wsc/trust/sts.cer", "/wsc/trust/testserviceaa.cer"
      volumes:
        - "./config_out:/config"
    wsc:
-     image: kvalitetsit/caddy-gooioidwsrest
-     environment:
-       - WSC_PORT=8080
-       - WSC_MONGO_HOST=mongo
-       - WSC_MONGO_DB=testdbxyz2
-       - WSC_STS_URL=https://sts/sts/service/sts
-       - WSC_CLIENT_CERTIFICATE=/wsc/certificates/client.cer
-       - WSC_CLIENT_KEY=/wsc/certificates/client.pem
-       - WSC_SERVICE_ENDPOINT_HOST=testservicea
-       - WSC_SERVICE_ENDPOINT_PORT=443
-       - WSC_SERVICE_ENDPOINT_CONTEXT=test
-       - WSC_SERVICE_AUDIENCE=urn:kit:testa:servicea
-       - WSC_SESSION_DATA_URL=https://testservicea
+     image: kvalitetsit/caddy-gooioidwsrest:latest
      volumes_from:
        - wsc-resources:ro
 #     ports:
-#       - "8080:8080"
+#       - "8080:8070"
      command:
       - "-config"
       - "/wsc/Caddyfile-wsc"
      networks:
        - gooioidwsrest
+   wsc-for-wsp:
+     image: kvalitetsit/caddy-gooioidwsrest:latest
+     volumes_from:
+       - wsc-resources:ro
+#     ports:
+#       - "8070:8070"
+     command:
+      - "-config"
+      - "/wsc/Caddyfile-wsc-for-wsp"
+     networks:
+       - gooioidwsrest
+
