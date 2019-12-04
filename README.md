@@ -7,115 +7,35 @@ For sikkerhedsprotokollen OIO IDWS REST
 Både WSC og WSP er lavet som moduler til open source web serveren [Caddy](https://caddyserver.com/).
 Til caching af hhv. tokens og sessions anvendes MongoDb.
 
-konfigureres som dokumenteret i vejledningerne til Caddy.
+## Konfiguration
+konfigureres som dokumenteret i vejledningerne til Caddy dvs. med en konfigurationsfil [V2: Config from Scratch](https://github.com/caddyserver/caddy/wiki/v2:-Config-from-Scratch)
 
-For at gøre konfigurationen lettere kan du anvende imaget til at generere en passende konfigurationsfil.
+For at gøre konfigurationen lettere kan du anvende imaget TODO til at generere en passende konfigurationsfil.
+
+Varibelnavn  | Beskrivelse | Eksempel |
+------------ | ----------- | -------- |
+TEMPLATE_FILE | Den template, der ønskes benyttet til genereringen | /caddyfiletemplates/Caddyfile-wsc-nosessiondata |
+CADDYFILE | Outputfil for den genererede Caddyfile | /output/Caddyfile-test |
+
+For WSC findes to forskellige templates:
+* /caddyfiletemplates/Caddyfile-wsc: En WSC der er placeret bagved en WSP (hvor den skal hente session data i forbindelse med trækning/veksling af SAML tokens)
+* /caddyfiletemplates/Caddyfile-wsc-nosessiondata: En "standalone" WSC (dvs uden WSC_SESSION_DATA_URL)
 
 Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes:
-
-
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
-WSC_STS_URL                 | URL, der udpeger STS Issue endpoint            | https://www.myorg.dk/sts/service/sts |
-WSC_CLIENT_CERTIFICATE_FILE | Fil, der udpeger klientens certifikat          | /config/client.cer                   |
-WSC_CLIENT_KEY_FILE         | Fil, der udpeger klientens private nøgle       | /config/client.key                   |
-WSC_TRUST_CERT_FILES        | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer", "/wsc/trust/testssl.cer" |
+LISTEN  | Den HTTP port, som containeren skal lytte på | 8080  |
+WSC_STS_URL | URL, der udpeger STS Issue endpoint | https://www.myorg.dk/sts/service/sts |
+WSC_SERVICE_AUDIENCE | Audience, der bedes om i forhold til STS'ens udstedelse af SAML tokens | urn:kit:testa:servicea |
+WSC_CLIENT_CERTIFICATE_FILE | Fil, der udpeger klientens certifikat | /config/client.cer |
+WSC_CLIENT_KEY_FILE | Fil, der udpeger klientens private nøgle | /config/client.key |
+WSC_TRUST_CERT_FILES | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer", "/wsc/trust/testssl.cer" |
+WSC_SERVICE_ENDPOINT_HOST | Hostnavnet på den service, som WSC ønsker at gøre brug af | servicea.myorg.dk |
+WSC_SERVICE_ENDPOINT_PORT | Porten, som servicen, som WSC ønsker at gøre brug af, lytter på | 443 |
+WSC_SERVICE_ENDPOINT_CONTEXT | Context for servicen, som WSC ønsker at gøre brug af (kan være tom) | servicea |
+WSC_SESSION_DATA_URL | Den url, hvor WSC kan hente sessionsdata (for setups, hvor WSC er placeret i forbindelse med en WSP) | https://testservicea |
 
-
-Ved hjælp af WSC bliver det let at kalde en Web service der er sikret med OIO IDWS REST.
-
-
-# gooioidwdrest
-
-# Opstart af udviklingsmiljø                              
-
-Der ligger et docker-compose setup, som sætter udviklingsmiljøet op i 'testgooioidwsrest'.
-Start først databaserne og dernæst sikkerhedskomponenter. De ligger i to forskellige docker-compose filer. Alle containere vil starte i et Docker network kaldet 'gooioidwsrest'.
-
-```
-docker-compose -f docker-compose-db.yml up
-
-docker-compose up
-```
-
-Når udviklingsmiljøet er startet kan du gå i gang med at lave ændringer og bygge lokalt (se nedenfor).
-
-
-# Hvis du vil bygge lokalt
-
-Inden du kan bygge lokalt skal du have lavet et image med en ssh nøgle til GitHub som skal bruges under byg.
-Dette image skal bare ligge lokalt på din maskine, så det giver ikke problemer i forhold til sikkerheden.
-
-Sådan gør du:
-
-- Du skal sørge for at du kan autentificere dig hos GitHub med SSH nøgle: [Connecting to GitHub with SSH](https://help.github.com/en/articles/connecting-to-github-with-ssh)
-- Læs din SSH nøgle ind i en ENV variable og byg dit kit/git sådan her: 
-```
-SSH_PRIVATE_KEY=`cat ~/.ssh/id_rsa_github`
-docker build -t kit/git -f Dockerfile-github . --build-arg SSH_PRIVATE_KEY="${SSH_PRIVATE_KEY}"
-```
-
-Derefter kan du bygge fra rodfolderen med kommandoen:
-```
-docker build --network testgooioidwsrest_gooioidwsrest  -t kvalitetsit/gooioidwsrest .
-```
-
-Bemærk at build forgår i samme netværk som udviklingsmiljøet, da testene anvender udviklingsmiljøets services.
-
-# kvalitetsit/caddy-gooioidwsrest
-
-OIO IDWS REST protokollen bliver leveret som en række plugins til [https://caddyserver.com/](https://caddyserver.com/).
-
-Mongodb anvendes som session cache. 
-
-## Miljøvariable og konfiguration
-
-kvalitetsit/caddy-gooioidwsrest kan konfigureres med følgende ENV variable:
-
-Varibelnavn  | Beskrivelse                                    | Obligatorisk | Defaultværdi    |
------------- | ---------------------------------------------- | ------------ | --------------- |
-mongo_host   | Hostnavn for mongo server                      | Ja           | Ingen           |
-mongo_port   | Portnummer for mongo service                   | Nej          | 27017           |
-
-Derudover sker konfigurationen vha en konfigurationsfil - se f.eks [Caddyfile Primer](https://caddyserver.com/tutorial/caddyfile).
-
-Sikkerhedsprotokollen konfigurers vha direktiverne:
-* oioidwsrestwsc
-
-### Dokumentation af oioidwsrestwsc
-
-#### Konfiguration
-Konfigurationen består af følgende felter:
-
-```
-        oioidwsrestwsc {
-                mongo_db		value
-
-                sts_url			value
-
-                client_cert_file	value
-                client_key_file		value
-
-                trust_cert_files	certs...
-
-                service_endpoint	value
-                service_audience        value
-
-		session_data_url	value
-        }
-```
-
-* **mongo_db** er en obligatorisk opsætning med navnet på databaseinstancen i mongo
-* **sts_url** er en obligarisk opsætning med endpoint for STS issue service
-* **client_cert_file** er en obligatorisk opsætning med sti til clientcertifikatet til anvendelse i kommunikation med STS (CER)
-* **client_key_file** er en obligatorisk opsætning med sti til clientnøgle til anvendelse i kommunikation med STS (PEM)
-* **trust_cert_files** en optionel list af stier til SSL certifikater, der skal trustes i forbindelse med autentificering (f.eks. for STS og provider)
-* **service_endpoint** er en obligatorisk opsætning URL til service endpoint
-* **service_audience** er en obligatorisk opsætning til det audience SAML tokenet skal udstedes til
-* **session_data_url** er en optionel opsætning, hvis WSC står bag en WSP, hvor token- og sessionoplysninger kan afhentes på URL
-
-#### Anvendelse
+#### Anvendelse af WSC
 Når oioidwsrestwsc er startet op kan den danne en proxy foran et sikret API, hvor sikkerhed håndteres.
 Hvis man fra anvendersiden har brug for at påvirke token udstedelsen med extra claims kan disse sendes til oioidwsrestwsc i en optionel HTTP header:
 ```
