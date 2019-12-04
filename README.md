@@ -38,6 +38,9 @@ WSC_SERVICE_ENDPOINT_PORT | Porten, som servicen, som WSC ønsker at gøre brug 
 WSC_SERVICE_ENDPOINT_CONTEXT | Context for servicen, som WSC ønsker at gøre brug af (kan være tom) | servicea |
 WSC_SESSION_DATA_URL | Den url, hvor WSC kan hente sessionsdata (for setups, hvor WSC er placeret i forbindelse med en WSP) | https://testservicea |
 
+For et eksempel (med docker-compose), der både anvender templategenerering og sætter WSC op med den genererede template, se: 
+[docker-compose setup med generering af templates](./testgooioidwsrest/docker-compose-wsc.yml)
+
 #### Anvendelse af WSC
 Når oioidwsrestwsc er startet op kan den danne en proxy foran et sikret API, hvor sikkerhed håndteres.
 Hvis man fra anvendersiden har brug for at påvirke token udstedelsen med extra claims kan disse sendes til oioidwsrestwsc i en optionel HTTP header:
