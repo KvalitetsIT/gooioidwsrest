@@ -10,7 +10,7 @@ Til caching af hhv. tokens og sessions anvendes MongoDb.
 ## Konfiguration
 konfigureres som dokumenteret i vejledningerne til Caddy dvs. med en konfigurationsfil [V2: Config from Scratch](https://github.com/caddyserver/caddy/wiki/v2:-Config-from-Scratch)
 
-For at gøre konfigurationen lettere kan du anvende imaget TODO til at generere en passende konfigurationsfil.
+For at gøre konfigurationen lettere kan du anvende imaget TODO til at generere en passende konfigurationsfil for hhv WSC og WSP.
 
 Varibelnavn  | Beskrivelse | Eksempel |
 ------------ | ----------- | -------- |
@@ -21,6 +21,10 @@ For WSC findes to forskellige templates:
 * /caddyfiletemplates/Caddyfile-wsc: En WSC der er placeret bagved en WSP (hvor den skal hente session data i forbindelse med trækning/veksling af SAML tokens)
 * /caddyfiletemplates/Caddyfile-wsc-nosessiondata: En "standalone" WSC (dvs uden WSC_SESSION_DATA_URL)
 
+For WSP kan denne template anvendes:
+* /caddyfiletemplates/Caddyfile-wsp: En WSP
+
+### Konfiguration af WSC
 Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes:
 
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
@@ -38,8 +42,29 @@ WSC_SERVICE_ENDPOINT_PORT | Porten, som servicen, som WSC ønsker at gøre brug 
 WSC_SERVICE_ENDPOINT_CONTEXT | Context for servicen, som WSC ønsker at gøre brug af (kan være tom) | servicea |
 WSC_SESSION_DATA_URL | Den url, hvor WSC kan hente sessionsdata (for setups, hvor WSC er placeret i forbindelse med en WSP) | https://testservicea |
 
-For et eksempel (med docker-compose), der både anvender templategenerering og sætter WSC op med den genererede template, se: 
-[docker-compose setup med generering af templates](./testgooioidwsrest/docker-compose-wsc.yml)
+For et eksempel (med docker-compose), der både anvender generering af konfigurationsfil for WSC og sætter WSC op med den genererede konfiguration, se: 
+[docker-compose setup med generering af konfigurationsfil for en WSC](./testgooioidwsrest/docker-compose-wsc.yml)
+
+## Konfiguration af WSP
+Til genereringen af konfigurationfil for WSP skal følgende ENV variable sættes:
+
+Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
+--------------------------- | ---------------------------------------------- | ------------------------------------ |
+LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
+MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
+SSL_HOST_NAME               | WSP hostname            | servicea.myorg.dk |
+WSP_SSL_CERTIFICATE_FILE    | Filnavn, der udpeger WSP SSL certifikat | /ssl/testserviceaa-ssl.crt |
+WSP_SSL_KEY_FILE            | Filnavn, der udpeger WSP SSL private nøgle | /ssl/testserviceaa-ssl.key |
+WSP_BACKEND_HOST            | Hostnavn på den service, som WSP beskytter | localhost |
+WSP_BACKEND_PORT            | Port for den service, som WSP beskytter | 8080 |
+WSP_AUDIENCE_RESTRICTION    | Audience, som WSP skal verificere | urn:kit:testa:servicea |
+WSP_TRUST_CERT_FILES | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer" |
+
+For et eksempel (med docker-compose), der både anvender generering af konfigurationsfil for WSP og sætter WSP op med den genererede konfiguration, se: 
+[docker-compose setup med generering af konfigurationsfil for en WSP](./testgooioidwsrest/docker-compose-wsp.yml)
+
+## Anvendelse 
 
 #### Anvendelse af WSC
 Når oioidwsrestwsc er startet op kan den danne en proxy foran et sikret API, hvor sikkerhed håndteres.
