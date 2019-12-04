@@ -85,8 +85,16 @@ pipeline {
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
-//               				docker.image("kvalitetsit/gooioidwsrest").push("${env.GIT_COMMIT}")
-        				docker.image("kvalitetsit/gooioidwsrest").push("dev")
+        				def image = docker.image("kvalitetsit/gooioidwsrest").
+                                        image.push("dev")
+
+                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
+                                        {
+                                                echo "Tagging version."
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push('latest')
+                                        }
+
 				}
 			}
 		}
@@ -94,8 +102,15 @@ pipeline {
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
                                 script {
- //                                       docker.image("kvalitetsit/gooioidwsrest-templates").push("${env.GIT_COMMIT}")
-                                        docker.image("kvalitetsit/gooioidwsrest-templates").push("dev")
+                                        def image = docker.image("kvalitetsit/gooioidwsrest-templates")
+                                        image.push("dev")
+
+                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
+                                        {
+                                                echo "Tagging version."
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push('latest')
+                                        }
                                 }
                         }
                 }
