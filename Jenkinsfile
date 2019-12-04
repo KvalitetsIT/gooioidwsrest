@@ -14,7 +14,6 @@ pipeline {
                                 script {
 					docker.build("build-gooioidwsrestresources/sts", "-f ./testgooioidwsrest/Dockerfile-resources-sts --no-cache ./testgooioidwsrest")
                                         docker.build("build-gooioidwsrestresources/servicea", "-f ./testgooioidwsrest/Dockerfile-resources-servicea --no-cache ./testgooioidwsrest")
-                                        docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc --no-cache ./testgooioidwsrest")
                                 }
                         }
                 }
@@ -61,6 +60,14 @@ pipeline {
                                 }
                         }
                 }
+                stage('Build Docker resouce images for caddy modules (wsp and wsc)') {
+                        steps {
+                                script {
+                                        docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc --no-cache ./testgooioidwsrest")
+                                        docker.build("build-gooioidwsrestresources/wsp", "-f ./testgooioidwsrest/Dockerfile-resources-wsp --no-cache ./testgooioidwsrest")
+                                }
+                        }
+                }
                 stage('Run integration tests for caddy module (wsc)') {
                         steps {
                                 dir('testgooioidwsrest') {
@@ -68,7 +75,13 @@ pipeline {
                                 }
                         }
                 }
-
+                stage('Run integration tests for caddy module (wsp)') {
+                        steps {
+                                dir('testgooioidwsrest') {
+                                        sh 'docker-compose -f docker-compose-wsp.yml up -d'
+                                }
+                        }
+                }
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
@@ -95,6 +108,7 @@ pipeline {
 			dir('testgooioidwsrest') {
 				sh 'docker-compose -f docker-compose-db.yml stop'
                                 sh 'docker-compose -f docker-compose-wsc.yml stop'
+				sh 'docker-compose -f docker-compose-wsp.yml stop'
                                 sh 'docker-compose stop'
 			}
 		}

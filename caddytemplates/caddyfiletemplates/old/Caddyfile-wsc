@@ -8,14 +8,17 @@
                "automatic_https":{
                   "disable": true
 	       },
-	       "logs": {
-               },
                "listen":[
                   ":${LISTEN_PORT}"
                ],
                "routes":[
-                    {
-		         "handle": [
+                  {
+                     "handle":[
+                        {
+                           "handler":"subroute",
+                           "routes":[
+                              {
+                                 "handle":[
 				    {
                                        "handler": "oioidwsrestwsc",
 				       "mongo_host": "${MONGO_HOST}",
@@ -45,15 +48,19 @@
                                           }
                                        ]
                                     }
-                          ],
-                          "match":[
-                                {
-                                    "path":[
-                                       "/"
-                                     ]
-                                }
-                          ]
-                     }
+                                 ],
+                                 "match":[
+                                    {
+                                       "path":[
+                                          "/"
+                                       ]
+                                    }
+                                 ]
+                              }
+                           ]
+                        }
+                     ]
+                  }
                ]
             }
          }

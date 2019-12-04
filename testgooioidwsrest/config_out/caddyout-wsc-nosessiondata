@@ -23,10 +23,9 @@
 				       "sts_url": "https://sts/sts/service/sts",
                                        "client_cert_file": "/wsc/certificates/client.cer",
                                        "client_key_file": "/wsc/certificates/client.pem",
-                                       "trust_cert_files": [ "/wsc/trust/sts.cer", "/wsc/trust/testservicea.cer" ],
-                                       "service_endpoint": "https://testservicea/test",
-                                       "service_audience": "urn:kit:testa:servicea",
-                                       "session_data_url": "https://testservicea"
+                                       "trust_cert_files": [ "/wsc/trust/sts.cer", "/wsc/trust/testserviceaa.cer" ],
+                                       "service_endpoint": "https://testserviceaa/test",
+                                       "service_audience": "urn:kit:testa:servicea"
                                     },
                                     {
                                        "handler":"reverse_proxy",
@@ -41,7 +40,7 @@
                                        },
                                        "upstreams":[
                                           {
-                                             "dial":"testservicea:443"
+                                             "dial":"testserviceaa:443"
                                           }
                                        ]
                                     }

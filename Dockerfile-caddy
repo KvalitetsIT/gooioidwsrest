@@ -6,6 +6,7 @@ ENV GO111MODULE=on
 RUN mkdir /caddy
 WORKDIR /caddy
 RUN go mod init caddy
+RUN echo "replace github.com/caddyserver/caddy/v2 => github.com/KvalitetsIT/caddy/v2 af18d1a7d058b563f0936d3be38f5482ed6595b5" >> go.mod
 RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig latest" >> go.mod
 RUN echo "replace oioidwsrest => ../oioidwsrest" >> go.mod
 

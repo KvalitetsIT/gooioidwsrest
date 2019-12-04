@@ -23,28 +23,27 @@
 				       "sts_url": "https://sts/sts/service/sts",
                                        "client_cert_file": "/wsc/certificates/client.cer",
                                        "client_key_file": "/wsc/certificates/client.pem",
-                                       "trust_cert_files": [ "/wsc/trust/sts.cer", "/wsc/trust/testservicea.cer" ],
-                                       "service_endpoint": "https://testservicea/test",
-                                       "service_audience": "urn:kit:testa:servicea",
-                                       "session_data_url": "https://testservicea"
+                                       "trust_cert_files": [ "/wsc/trust/sts.cer", "/wsc/trust/testserviceaa.cer" ],
+                                       "service_endpoint": "https://testserviceaa",
+                                       "service_audience": "urn:kit:testa:servicea"
                                     },
                                     {
-                                       "handler":"reverse_proxy",
-                                       "transport":{
-                                          "protocol":"http",
-					  "tls": {
-					        "insecure_skip_verify": true,
+                                        "handler": "reverse_proxy",
+                                        "transport": {
+                                             "protocol": "http",
+					     "tls": {
+						"insecure_skip_verify": true,
 						"client_certificate_file": "/wsc/certificates/client.cer",
-						"client_certificate_key_file": "/wsc/certificates/client.pem"
-					   },
-                                          "read_buffer_size":4096
-                                       },
-                                       "upstreams":[
-                                          {
-                                             "dial":"testservicea:443"
-                                          }
-                                       ]
-                                    }
+                                                "client_certificate_key_file": "/wsc/certificates/client.pem"
+					     },
+                                             "read_buffer_size":4096
+                                         },
+                                         "upstreams":[
+                                              {
+                                                 "dial":"testserviceaa:443"
+                                              }
+                                         ]
+                                   }
                           ],
                           "match":[
                                 {
