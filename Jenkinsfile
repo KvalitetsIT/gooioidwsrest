@@ -85,14 +85,14 @@ pipeline {
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
-        				docker.image("kvalitetsit/gooioidwsrest").push("dev")
+        				image = docker.image("kvalitetsit/gooioidwsrest")
+                                        image.push("dev")
 
                                         if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
                                         {
                                                 echo "Tagging version."
-                                                docker.image("kvalitetsit/gooioidwsrest")
-                                                      .push(env.TAG_NAME.substring(1))
-                                                      .push("latest")
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push("latest")
                                         }
 
 				}
@@ -102,14 +102,14 @@ pipeline {
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
                                 script {
-                                        docker.image("kvalitetsit/gooioidwsrest-templates").push("dev")
+                                        image.docker.image("kvalitetsit/gooioidwsrest-templates")
+                                        image.push("dev")
 
                                         if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
                                         {
                                                 echo "Tagging version."
-                                                docker.image("kvalitetsit/gooioidwsrest-templates")
-                                                      .push(env.TAG_NAME.substring(1))
-                                                      .push("latest")
+                                                image.push(env.TAG_NAME.substring(1))
+                                                image.push("latest")
                                         }
                                 }
                         }
