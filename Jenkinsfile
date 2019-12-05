@@ -102,7 +102,7 @@ pipeline {
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
                                 script {
-                                        image.docker.image("kvalitetsit/gooioidwsrest-templates")
+                                        image = docker.image("kvalitetsit/gooioidwsrest-templates")
                                         image.push("dev")
 
                                         if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
