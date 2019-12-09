@@ -29,7 +29,7 @@ Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes
 
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+LISTEN_PORT                 | Den HTTP port, som containeren skal lytte på   | 8080                                 |
 MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
 MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
 WSC_STS_URL                 | URL, der udpeger STS Issue endpoint            | https://www.myorg.dk/sts/service/sts |
@@ -50,7 +50,7 @@ Til genereringen af konfigurationfil for WSP skal følgende ENV variable sættes
 
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+LISTEN_PORT                 | Den HTTP port, som containeren skal lytte på   | 8080                                 |
 MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
 MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
 SSL_HOST_NAME               | WSP hostname            | servicea.myorg.dk |
