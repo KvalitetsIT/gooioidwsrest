@@ -53,6 +53,13 @@ pipeline {
                                 }
                         }
                 }
+                stage('Build Docker image (caddy module)') {
+                        steps {
+                                script {
+                                        docker.build("kvalitetsit/gooioidwsrest-dev", "-f Dockerfile-caddydev .")
+                                }
+                        }
+                }
                 stage('Build Docker image (caddy templates)') {
                         steps {
                                 script {
@@ -85,7 +92,7 @@ pipeline {
 		stage('Tag Docker image and push to registry') {
 			steps {
 				script {
-        				docker.image("kvalitetsit/gooioidwsrest").push("dev")
+   				        docker.image("kvalitetsit/gooioidwsrest").push("dev")
 
                                         if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
                                         {
@@ -98,6 +105,23 @@ pipeline {
 				}
 			}
 		}
+                stage('Tag Docker image-dev and push to registry') {
+                        steps {
+                                script {
+                                        docker.image("kvalitetsit/gooioidwsrest-dev").push("dev")
+
+                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
+                                        {
+                                                echo "Tagging dev version."
+                                                docker.image("kvalitetsit/gooioidwsrest")
+                                                      .push("dev-"+env.TAG_NAME.substring(1))
+                                                      .push("latest-dev")
+                                        }
+
+                                }
+                        }
+                }
+
 
                 stage('Tag Docker image for templates and push to registry') {
                         steps {
