@@ -23,7 +23,7 @@ RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmlds
 ENV GOPRIVATE="github.com/KvalitetsIT/gosecurityprotocol,github.com/KvalitetsIT/gostsclient"
 # Using Docker's layers to cache the following libraries
 #RUN go get github.com/caddyserver/caddy
-RUN echo "kuk11 d224"
+RUN echo "kuk11 d225"
 RUN go get github.com/google/uuid
 RUN go get github.com/KvalitetsIT/gosecurityprotocol
 RUN go get github.com/KvalitetsIT/gostsclient

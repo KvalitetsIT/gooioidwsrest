@@ -7,14 +7,12 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"strings"
-	"encoding/json"
         uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 )
 
 const HEADER_WWW_AUTHENTICATE = "WWW-Authenticate"
 const HEADER_AUTHORIZATION = "Authorization"
-
 
 type OioIdwsRestHttpProtocolServerConfig struct {
 
@@ -93,8 +91,9 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 			}
 
 			// Check if the user is requesting sessiondata
-			if (isRequestForSessionData(r)) {
-				return handleRequestForSessionData(sessionData, w, r)
+			handlerFunc := securityprotocol.IsRequestForSessionData(sessionData, a.sessionCache, w, r)
+			if (handlerFunc != nil) {
+				return handlerFunc()
 			}
 
 			// The session id ok ... pass-through to next handler
@@ -149,26 +148,6 @@ func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string, error) {
 		return "", fmt.Errorf(fmt.Sprintf("%s header contains illegal value: %s", HEADER_AUTHORIZATION, sessionId))
 	}
 	return "", nil
-}
-
-func isRequestForSessionData(r *http.Request) (bool) {
-
-	path := r.URL.Path
-        if (path == "/getsessiondata") {
-		return (http.MethodGet == r.Method)
-	}
-	return false
-}
-
-func handleRequestForSessionData(sessionData *securityprotocol.SessionData, w http.ResponseWriter, r *http.Request) (int, error) {
-
-	sessionDataBytes, marshalErr := json.Marshal(sessionData)
-	if (marshalErr != nil) {
-		return http.StatusInternalServerError, marshalErr
-	}
-	w.Write(sessionDataBytes)
-
-	return http.StatusOK, nil
 }
 
 func hashFromCertificate(certificate *x509.Certificate) (string) {

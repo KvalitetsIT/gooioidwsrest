@@ -6,7 +6,8 @@
          "servers":{
             "srv0":{
                "automatic_https":{
-                  "disable": true
+                  "disable": true,
+		  "disable_redirects": false
 	       },
 	       "logs": {
                },

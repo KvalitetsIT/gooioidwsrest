@@ -14,7 +14,7 @@
 		},
 		"http": {
 			"servers": {
-				"myserver": {
+				"srv${LISTEN_PORT}": {
 					"listen": [":${LISTEN_PORT}"],
 					"strict_sni_host": false,
 					"tls_connection_policies": [{

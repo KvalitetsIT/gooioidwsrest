@@ -1,4 +1,4 @@
-# OIO IDWS REST
+# kvalitetsit/gooioidwsrest
 Er et Docker image, der indeholder implementationer af hhv
 * Web Service Consumer (WSC)
 * Web Service Producer (WSP)
@@ -10,7 +10,7 @@ Til caching af hhv. tokens og sessions anvendes MongoDb.
 ## Konfiguration
 konfigureres som dokumenteret i vejledningerne til Caddy dvs. med en konfigurationsfil [V2: Config from Scratch](https://github.com/caddyserver/caddy/wiki/v2:-Config-from-Scratch)
 
-For at gøre konfigurationen lettere kan du anvende imaget TODO til at generere en passende konfigurationsfil for hhv WSC og WSP.
+For at gøre konfigurationen lettere kan du anvende imaget kvalitetsit/gooioidwsrest-templates til at generere en passende konfigurationsfil for hhv WSC og WSP.
 
 Varibelnavn  | Beskrivelse | Eksempel |
 ------------ | ----------- | -------- |
@@ -29,7 +29,7 @@ Til genereringen af konfigurationfil for WSC skal følgende ENV variable sættes
 
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+LISTEN_PORT                 | Den HTTP port, som containeren skal lytte på   | 8080                                 |
 MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
 MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
 WSC_STS_URL                 | URL, der udpeger STS Issue endpoint            | https://www.myorg.dk/sts/service/sts |
@@ -50,7 +50,7 @@ Til genereringen af konfigurationfil for WSP skal følgende ENV variable sættes
 
 Varibelnavn                 | Beskrivelse                                    | Eksempel                             |
 --------------------------- | ---------------------------------------------- | ------------------------------------ |
-LISTEN                      | Den HTTP port, som containeren skal lytte på   | 8080                                 |
+LISTEN_PORT                 | Den HTTP port, som containeren skal lytte på   | 8080                                 |
 MONGO_HOST                  | Hostnavn for MongoDb | mongodb |
 MONGO_DATABASE              | Databasenavn for MongoDb | wsc_tokens |
 SSL_HOST_NAME               | WSP hostname            | servicea.myorg.dk |
