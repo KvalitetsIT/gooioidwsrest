@@ -1,4 +1,4 @@
-FROM kvalitetsit/gooioidwsrest-templates
+FROM kvalitetsit/gooioidwsrest-templates:latest
 
 ADD ./wsp/testserviceaa-ssl.crt /ssl/testserviceaa-ssl.crt
 ADD ./wsp/testserviceaa-ssl.key /ssl/testserviceaa-ssl.key
@@ -6,6 +6,8 @@ ADD ./wsp/testserviceaa-ssl.key /ssl/testserviceaa-ssl.key
 ADD  ./sts/sts.cer /wsp/trust/sts.cer
 
 ADD  ./wsp/Caddyfile-wsp /wsp/Caddyfile-wsp
+
+RUN cat /wsp/Caddyfile-wsp
 
 VOLUME /wsp
 VOLUME /ssl

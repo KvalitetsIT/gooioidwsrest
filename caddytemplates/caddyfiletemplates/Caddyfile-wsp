@@ -22,6 +22,9 @@
                                                         "require": true
                                                 }
                                         }],
+					"automatic_https":{
+						"disable_redirects": true
+					},
                                         "logs": {
                                         },
 					"routes": [

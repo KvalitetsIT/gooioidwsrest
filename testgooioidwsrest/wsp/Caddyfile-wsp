@@ -24,6 +24,9 @@
                                         }],
                                         "logs": {
                                         },
+                                        "automatic_https":{
+                                                "disable_redirects": true
+                                        },
 					"routes": [
 						{
 							"match": [
