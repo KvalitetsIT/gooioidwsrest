@@ -1,5 +1,5 @@
 FROM alpine:3.10.3
-RUN apk add --update --no-cache gettext
+RUN apk add --update --no-cache gettext jq
 COPY ./caddytemplates/caddyfiletemplates/Caddyfile-wsc /caddyfiletemplates/Caddyfile-wsc
 COPY ./caddytemplates/caddyfiletemplates/Caddyfile-wsp /caddyfiletemplates/Caddyfile-wsp
 COPY ./caddytemplates/caddyfiletemplates/Caddyfile-wsc-nosessiondata  /caddyfiletemplates/Caddyfile-wsc-nosessiondata

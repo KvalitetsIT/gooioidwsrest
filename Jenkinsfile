@@ -65,22 +65,14 @@ pipeline {
                 stage('Build Docker resouce images for caddy modules (wsp and wsc)') {
                         steps {
                                 script {
-                                        docker.build("build-gooioidwsrestresources/wsc", "-f ./testgooioidwsrest/Dockerfile-resources-wsc --no-cache ./testgooioidwsrest")
-                                        docker.build("build-gooioidwsrestresources/wsp", "-f ./testgooioidwsrest/Dockerfile-resources-wsp --no-cache ./testgooioidwsrest")
+                                        docker.build("build-gooioidwsrestresources/caddy", "-f ./testgooioidwsrest/Dockerfile-resources-caddytest --no-cache ./testgooioidwsrest")
                                 }
                         }
                 }
-                stage('Run integration tests for caddy module (wsc)') {
+                stage('Run integration tests for caddy module') {
                         steps {
                                 dir('testgooioidwsrest') {
-                                        sh 'docker-compose -f docker-compose-wsc.yml up -d'
-                                }
-                        }
-                }
-                stage('Run integration tests for caddy module (wsp)') {
-                        steps {
-                                dir('testgooioidwsrest') {
-                                        sh 'docker-compose -f docker-compose-wsp.yml up -d'
+                                        sh 'docker-compose -f docker-compose-caddy.yml up -d'
                                 }
                         }
                 }
@@ -122,8 +114,7 @@ pipeline {
 
 			dir('testgooioidwsrest') {
 				sh 'docker-compose -f docker-compose-db.yml stop'
-                                sh 'docker-compose -f docker-compose-wsc.yml stop'
-				sh 'docker-compose -f docker-compose-wsp.yml stop'
+                                sh 'docker-compose -f docker-compose-caddy.yml stop'
                                 sh 'docker-compose stop'
 			}
 		}
