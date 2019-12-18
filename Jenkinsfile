@@ -25,7 +25,7 @@ pipeline {
                                 dir('testgooioidwsrest') {
 					sh 'docker-compose -f docker-compose-db.yml rm -f'
                                         sh 'docker-compose rm -f'
-					sh 'docker-compose -f docker-compose-wsc.yml rm -f'
+					sh 'docker-compose -f docker-compose-caddy.yml rm -f'
                                 }
                         }
 		}
