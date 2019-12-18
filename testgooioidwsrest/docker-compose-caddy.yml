@@ -12,10 +12,10 @@ services:
      image: kvalitetsit/gooioidwsrest:latest
      volumes_from:
        - caddy-resources:ro
-     ports:
-       - "8080:8080"
-       - "8090:8090"
-       - "8443:443"
+#     ports:
+#       - "8080:8080"
+#       - "8090:8090"
+#       - "8443:443"
      command:
       - "-config"
       - "/caddy/config.json"
