@@ -15,6 +15,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
+
+	 "go.uber.org/zap"
 )
 
 const DEFAULT_VALUE_SESSION_HEADER_NAME = "SESSION"
@@ -46,6 +48,8 @@ type CaddyOioIdwsRestWsc struct {
 	SessionDataUrl string `json:"session_data_url,omitempty"`
 
 	ClientProtocol *oioidwsrest.OioIdwsRestHttpProtocolClient
+
+	Logger zap.Logger
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
@@ -78,7 +82,8 @@ func (CaddyOioIdwsRestWsc) CaddyModule() caddy.ModuleInfo {
 
 // Provision implements caddy.Provisioner.
 func (m *CaddyOioIdwsRestWsc) Provision(ctx caddy.Context) error {
-
+    m.Logger = ctx.Logger(g)
+    m.Logger.Info("Provisioning OioIdwsRest Caddy module")
 	// Create Mongo Token Cache
 	mongo_port := "27017"
 	if (len(m.MongoPort) != 0) {
