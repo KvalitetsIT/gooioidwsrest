@@ -30,7 +30,7 @@ type CaddyOioIdwsRestWsp struct {
 
 	ProviderProtocol *oioidwsrest.OioIdwsRestWsp
 
-	Logger *zap.Logger
+	Logger *zap.SugaredLogger
 }
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler.
@@ -67,7 +67,7 @@ func (CaddyOioIdwsRestWsp) CaddyModule() caddy.ModuleInfo {
 
 // Provision implements caddy.Provisioner.
 func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
-    m.Logger = ctx.Logger(g)
+    m.Logger = ctx.Logger(m).Sugar()
     m.Logger.Info("Provisioning OioIdwsRestWsp Caddy module")
 	// Create Mongo Token Cache
 	mongo_port := "27017"
@@ -79,10 +79,10 @@ func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
 		mongo_port = m.MongoPort
         }
 	mongo_url := fmt.Sprintf("%s:%s", m.MongoHost, mongo_port)
-	m.logger.Debugf("Using MongoDB:%s", mongo_url)
+	m.Logger.Debugf("Using MongoDB: %s", mongo_url)
 	sessionCache, err := securityprotocol.NewMongoSessionCache(mongo_url, m.MongoDb, "sessions")
 	if (err != nil) {
-	    log.Warnf("Can't setup tokenCache: %v", err)
+	    m.Logger.Warnf("Can't setup tokenCache: %v", err)
 		return err
 	}
 
