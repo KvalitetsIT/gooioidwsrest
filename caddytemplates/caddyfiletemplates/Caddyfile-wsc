@@ -23,7 +23,7 @@
 				       "sts_url": "${WSC_STS_URL}",
                                        "client_cert_file": "${WSC_CLIENT_CERTIFICATE_FILE}",
                                        "client_key_file": "${WSC_CLIENT_KEY_FILE}",
-                                       "trust_cert_files": [ "${WSC_TRUST_CERT_FILES}" ],
+                                       "trust_cert_files": [ ${WSC_TRUST_CERT_FILES} ],
                                        "service_endpoint": "https://${WSC_SERVICE_ENDPOINT_HOST}${WSC_SERVICE_ENDPOINT_CONTEXT}",
                                        "service_audience": "${WSC_SERVICE_AUDIENCE}",
                                        "session_data_url": "${WSC_SESSION_DATA_URL}"
