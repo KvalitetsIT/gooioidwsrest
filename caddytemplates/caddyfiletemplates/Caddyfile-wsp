@@ -39,7 +39,7 @@
                                                                         "handler": "oioidwsrestwsp",
                                                                         "mongo_host": "${MONGO_HOST}",
                                                                         "mongo_db": "${MONGO_DATABASE}",
-                                                                        "trust_cert_files": [ ${WSP_TRUST_CERT_FILES} ],
+                                                                        "trust_cert_files": [ "${WSP_TRUST_CERT_FILES}" ],
                                                                         "audience_restriction": "${WSP_AUDIENCE_RESTRICTION}"
                                                                 },
 								{
