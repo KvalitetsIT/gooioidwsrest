@@ -21,6 +21,8 @@ import (
 
 	uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
+
+	"go.uber.org/zap"
 )
 
 const test_oio_idws_rest_header_name = "sessionxyx"
@@ -209,7 +211,7 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
 
-	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache)
+	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache, zap.NewProduction().Sugar() )
 
 	return testClient, mongoTokenCache
 }

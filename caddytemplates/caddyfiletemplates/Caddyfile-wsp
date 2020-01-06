@@ -26,7 +26,19 @@
 						"disable_redirects": true
 					},
                                         "logs": {
-                                        },
+                                                   		"default": {
+                                                   			"writer": {},
+                                                   			"encoder": {},
+                                                   			"level": "$WSP_CLIENT_LOGLEVEL",
+                                                   			"sampling": {
+                                                   				"interval": "1s",
+                                                   				"first": 100,
+                                                   				"thereafter": 100
+                                                   			},
+                                                   			"include": [],
+                                                   			"exclude": []
+                                                   		}
+                                                   	},
 					"routes": [
 						{
 							"match": [

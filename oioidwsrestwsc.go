@@ -16,6 +16,8 @@ import (
 
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
 	stsclient "github.com/KvalitetsIT/gostsclient"
+
+	"go.uber.org/zap"
 )
 
 
@@ -70,6 +72,9 @@ type OioIdwsRestHttpProtocolClient struct {
 	serviceAudience		string
 
 	service			securityprotocol.HttpHandler
+
+	Logger *zap.SugaredLogger
+
 }
 
 func CreateCaCertPool(trustCertFiles []string) *x509.CertPool {
@@ -93,7 +98,7 @@ func CreateCaCertPool(trustCertFiles []string) *x509.CertPool {
 	return caCertPool
 }
 
-func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig, tokenCache securityprotocol.TokenCache) *OioIdwsRestHttpProtocolClient {
+func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig, tokenCache securityprotocol.TokenCache, logger *zap.SugaredLogger) *OioIdwsRestHttpProtocolClient {
 
 	// Truststore
 	caCertPool := CreateCaCertPool(config.TrustCertFiles)
@@ -133,10 +138,10 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 	// Session handling
 	sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{ HttpHeaderName: config.SessionHeaderName }
 
-	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service)
+	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service, logger)
 }
 
-func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler) (*OioIdwsRestHttpProtocolClient) {
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) (*OioIdwsRestHttpProtocolClient) {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -148,54 +153,59 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 	httpProtocolClient.serviceEndpoint = serviceEndpoint
 	httpProtocolClient.serviceAudience = serviceAudience
 	httpProtocolClient.service = service
-
+    httpProtocolClient.Logger = logger
 	return httpProtocolClient
 }
 
 func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *http.Request) (int, error) {
+    client.Logger.Debug("Processing request")
 	return client.HandleService(w, r, client.service)
 }
 
 func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
 	if (client.matchHandler != nil && !client.matchHandler(r)) {
-		// No match, just delegate
+		client.Logger.Debug("No match just delegate")
 		return client.service.Handle(w, r)
 	}
 
-	// Check for session id
+	client.Logger.Debug("Check for sessionId")
 	sessionId := client.sessionIdHandler.GetSessionIdFromHttpRequest(r)
 
 	var sessionData *securityprotocol.SessionData = nil
 	var tokenData *securityprotocol.TokenData
 	if (sessionId != "") {
+	    client.Logger.Debug("sessionId found")
 		var err error
-
-		// Check if we have a token cached matching the session
+        client.Logger.Debug("Check if we have a token cached matching the session")
         	tokenData, err = client.tokenCache.FindTokenDataForSessionId(sessionId)
         	if (err != nil) {
-                	return http.StatusInternalServerError, err
+        	   client.Logger.Warnf("Error finding token for sessionId: %v",err)
+               return http.StatusInternalServerError, err
         	}
 
        		// Get sessiondata matching the session
 		if (client.sessionDataFetcher != nil) {
 	        	sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
 	       		if (err != nil) {
-	        	        return http.StatusInternalServerError, err
+	       		   client.Logger.Warnf("Error fetching sessiondata: %v",err)
+	        	   return http.StatusInternalServerError, err
 	        	}
 		}
 	}
 
 	sessionData, err := AddExtraClaimsToSessionData(sessionId, sessionData, r)
 	if (err != nil) {
+	    client.Logger.Warnf("Error adding extra claims to sessiondata: %v",err)
 		return  http.StatusInternalServerError, err
 	}
 
 	if (tokenData == nil || (sessionData != nil && (tokenData == nil || tokenData.Hash != sessionData.Hash)) || sessionId == "") {
 
-		// No token, no session, or sessiondata has changed since issueing - run authentication
+		client.Logger.Debug("No token, no session, or sessiondata has changed since issueing - run authentication")
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if (err != nil) {
+		    client.Logger.Warnf("Error getting token: %v",err)
 			return http.StatusUnauthorized, err
 		}
 
@@ -241,7 +251,7 @@ func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken 
 
 func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
 
-	// Using session attributes as claims
+	client.Logger.Debug("Using session attributes as claims")
 	claims := make(map[string]string)
 	if (sessionData != nil) {
 		for sessionAttributeKey, sessionAttributeValue := range sessionData.SessionAttributes {
@@ -249,7 +259,6 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 		}
 	}
 
-	// Get SAML assertion from STS
 	decodedToken := []byte{}
 	var err error
 	if (sessionData != nil && len(sessionData.Authenticationtoken) > 0) {
@@ -260,12 +269,13 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
         	}
 	}
 
-	// Get SAML assertion from STS
+	client.Logger.Debug("Get SAML assertion from STS")
 	encodedToken, err := client.GetEncodedTokenFromSts(decodedToken, claims)
 	if (err != nil) {
-                return nil, err
-        }
-
+	   client.Logger.Debug("Cannot get token from STS")
+       return nil, err
+    }
+    client.Logger.Debug("Got token from STS")
 	// Use that SAML assertion to authenticate
 	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)

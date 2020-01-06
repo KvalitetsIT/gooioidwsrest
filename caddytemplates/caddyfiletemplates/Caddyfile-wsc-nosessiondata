@@ -9,7 +9,19 @@
                   "disable": true
 	       },
 	       "logs": {
-               },
+                      		"default": {
+                      			"writer": {},
+                      			"encoder": {},
+                      			"level": "$WSC_CLIENT_LOGLEVEL",
+                      			"sampling": {
+                      				"interval": "1s",
+                      				"first": 100,
+                      				"thereafter": 100
+                      			},
+                      			"include": [],
+                      			"exclude": []
+                      		}
+                      	},
                "listen":[
                   ":${LISTEN_PORT}"
                ],

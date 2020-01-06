@@ -91,7 +91,7 @@ func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
         wspConfig.TrustCertFiles = m.TrustCertFiles
         wspConfig.AudienceRestriction = m.AudienceRestriction
 
-	m.ProviderProtocol = oioidwsrest.NewOioIdwsRestWspFromConfig(wspConfig, sessionCache)
+	m.ProviderProtocol = oioidwsrest.NewOioIdwsRestWspFromConfig(wspConfig, sessionCache, m.Logger)
 
 	return nil
 }

@@ -125,7 +125,7 @@ func (m *CaddyOioIdwsRestWsc) Provision(ctx caddy.Context) error {
 		wscConfig.SessionDataFetcher = securityprotocol.NewServiceCallSessionDataFetcher(m.SessionDataUrl, client)
 	}
 
-	m.ClientProtocol = oioidwsrest.NewOioIdwsRestHttpProtocolClient(*wscConfig, tokenCache)
+	m.ClientProtocol = oioidwsrest.NewOioIdwsRestHttpProtocolClient(*wscConfig, tokenCache, m.Logger)
 	
 	return nil
 }

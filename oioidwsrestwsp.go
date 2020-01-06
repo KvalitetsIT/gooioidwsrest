@@ -9,6 +9,7 @@ import (
 	"strings"
         uuid "github.com/google/uuid"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
+	"go.uber.org/zap"
 )
 
 const HEADER_WWW_AUTHENTICATE = "WWW-Authenticate"
@@ -36,23 +37,26 @@ type OioIdwsRestWsp struct {
 	HoK			bool
 
 	ClientCertHandler	func(req *http.Request) *x509.Certificate
+
+	Logger *zap.SugaredLogger
 }
 
-func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache) *OioIdwsRestWsp {
+func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, logger *zap.SugaredLogger) *OioIdwsRestWsp {
 
 	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true)
 
-        return NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service)
+        return NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
 }
 
 
-func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service securityprotocol.HttpHandler) *OioIdwsRestWsp{
+func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) *OioIdwsRestWsp{
 	n := new(OioIdwsRestWsp)
 	n.sessionCache = sessionCache
 	n.tokenAuthenticator = tokenAuthenticator
 	n.ClientCertHandler = getClientCertificate
 	n.Service = service
 	n.HoK = true
+	n.Logger = logger
 	return n
 }
 
