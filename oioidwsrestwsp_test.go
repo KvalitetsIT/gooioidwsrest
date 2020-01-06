@@ -261,7 +261,7 @@ func createMongoSessionCache() securityprotocol.SessionCache {
 
 func createOioIdwsWsp(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, clientCertHandler func(*http.Request) *x509.Certificate) (*httptest.Server, *OioIdwsRestWsp) {
 
-	wsp := NewOioIdwsRestWspFromConfig(config, sessionCache, zap.NewProduction().Sugar())
+	wsp := NewOioIdwsRestWspFromConfig(config, sessionCache, zap.NewNop().Sugar())
 	if (clientCertHandler != nil) {
 		wsp.ClientCertHandler = clientCertHandler
 	}

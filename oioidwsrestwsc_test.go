@@ -211,7 +211,7 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
 
-	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache, zap.NewProduction().Sugar() )
+	testClient := NewOioIdwsRestHttpProtocolClient(config, mongoTokenCache, zap.NewNop().Sugar() )
 
 	return testClient, mongoTokenCache
 }
