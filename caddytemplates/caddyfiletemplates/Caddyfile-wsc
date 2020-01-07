@@ -13,9 +13,9 @@
         "include": [],
         "exclude": []
       }
-  },
+     }
    },
-   "apps":{
+   "apps": {
       "tls": {
       },
       "http":{

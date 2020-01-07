@@ -13,8 +13,8 @@
      	"include": [],
      	"exclude": []
      }
-                                                   	},
-}
+    }
+},
 	"apps": {
 		"tls": {
 			"certificates": {
