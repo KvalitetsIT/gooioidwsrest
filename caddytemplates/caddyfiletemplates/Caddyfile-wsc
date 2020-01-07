@@ -2,7 +2,7 @@
    "logging": {
      "logs": {
       "default": {
-        "level": "$WSC_CLIENT_LOGLEVEL",
+        "level": "$WSC_CLIENT_LOGLEVEL"
       }
      }
    },
