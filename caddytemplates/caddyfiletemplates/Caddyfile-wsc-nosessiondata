@@ -2,18 +2,7 @@
   "logging": {
     "logs": {
       "default": {
-         "writer": {},
-         "encoder": {
-            "format": "console"
-         },
          "level": "$WSC_CLIENT_LOGLEVEL",
-         "sampling": {
-         	"interval": 1,
-         	"first": 100,
-         	"thereafter": 100
-         },
-         "include": [],
-         "exclude": []
        }
    }
   },
