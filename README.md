@@ -9,7 +9,7 @@ Til caching af hhv. tokens og sessions anvendes MongoDb.
 
 ## Konfiguration
 konfigureres som dokumenteret i vejledningerne til Caddy dvs. med en konfigurationsfil [V2: Config from Scratch](https://github.com/caddyserver/caddy/wiki/v2:-Config-from-Scratch)
-
+[Caddy config](https://caddyserver.com/docs/json/)
 For at gøre konfigurationen lettere kan du anvende imaget kvalitetsit/gooioidwsrest-templates til at generere en passende konfigurationsfil for hhv WSC og WSP.
 
 Varibelnavn  | Beskrivelse | Eksempel |
