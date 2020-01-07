@@ -41,6 +41,7 @@ WSC_SERVICE_ENDPOINT_HOST | Hostnavnet på den service, som WSC ønsker at gøre
 WSC_SERVICE_ENDPOINT_PORT | Porten, som servicen, som WSC ønsker at gøre brug af, lytter på | 443 |
 WSC_SERVICE_ENDPOINT_CONTEXT | Context for servicen, som WSC ønsker at gøre brug af (kan være tom) | servicea |
 WSC_SESSION_DATA_URL | Den url, hvor WSC kan hente sessionsdata (for setups, hvor WSC er placeret i forbindelse med en WSP) | https://testservicea |
+WSC_CLIENT_LOGLEVEL | Log level for Caddy moduler | info, debug osv |
 
 For et eksempel (med docker-compose), der både anvender generering af konfigurationsfil for WSC og sætter WSC op med den genererede konfiguration, se: 
 [docker-compose setup med generering af konfigurationsfil for en WSC](./testgooioidwsrest/docker-compose-wsc.yml)
@@ -60,6 +61,7 @@ WSP_BACKEND_HOST            | Hostnavn på den service, som WSP beskytter | loca
 WSP_BACKEND_PORT            | Port for den service, som WSP beskytter | 8080 |
 WSP_AUDIENCE_RESTRICTION    | Audience, som WSP skal verificere | urn:kit:testa:servicea |
 WSP_TRUST_CERT_FILES | Liste af filer med certifikater, der skal trustes (typisk STS certifikat og evt. SSL certifikater | "/wsc/trust/sts.cer" |
+WSP_CLIENT_LOGLEVEL | Log level for Caddy moduler | info, debug osv | 
 
 For et eksempel (med docker-compose), der både anvender generering af konfigurationsfil for WSP og sætter WSP op med den genererede konfiguration, se: 
 [docker-compose setup med generering af konfigurationsfil for en WSP](./testgooioidwsrest/docker-compose-wsp.yml)
