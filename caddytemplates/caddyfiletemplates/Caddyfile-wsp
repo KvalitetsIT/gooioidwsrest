@@ -3,10 +3,12 @@
   "logs": {
   	"default": {
      	"writer": {},
-     	"encoder": {},
+     	"encoder": {
+     	  "format": "console"
+     	},
      	"level": "$WSP_CLIENT_LOGLEVEL",
      	"sampling": {
-     		"interval": "1s",
+     		"interval": 1,
      		"first": 100,
      		"thereafter": 100
      	},
