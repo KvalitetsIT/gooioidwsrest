@@ -132,7 +132,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
         }
 
 		// Succesful authentication
-		resCode, err := ResponseWithSuccessfulAuth(w, sessionData)
+		resCode, err := ResponseWithSuccessfulAuth(w, sessionData,a.Logger)
 		if (err != nil) {
 			return http.StatusUnauthorized, err
 		}
