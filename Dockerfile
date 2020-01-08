@@ -15,20 +15,10 @@ ADD gitconfig /root/.gitconfig
 # Prepare for custom caddy build
 RUN mkdir /oioidwsrest
 WORKDIR /oioidwsrest
-RUN go mod init oioidwsrest
-
-RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig latest" >> go.mod
-
-
+COPY go.mod go.mod
 ENV GOPRIVATE="github.com/KvalitetsIT/gosecurityprotocol,github.com/KvalitetsIT/gostsclient"
-# Using Docker's layers to cache the following libraries
-#RUN go get github.com/caddyserver/caddy
-RUN echo "kuk11 d225"
-RUN go get github.com/google/uuid
-RUN go get github.com/KvalitetsIT/gosecurityprotocol
-RUN go get github.com/KvalitetsIT/gostsclient
-RUN go get github.com/russellhaering/gosaml2
-RUN go get gotest.tools/assert
+# Download dependencies
+RUN go mod download
 
 # Kitcaddy module source
 COPY . /oioidwsrest/

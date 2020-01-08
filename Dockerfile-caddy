@@ -5,15 +5,14 @@ ENV GO111MODULE=on
 # Prepare for custom caddy build
 RUN mkdir /caddy
 WORKDIR /caddy
-RUN go mod init caddy
-RUN echo "replace github.com/caddyserver/caddy/v2 => github.com/KvalitetsIT/caddy/v2 af18d1a7d058b563f0936d3be38f5482ed6595b5" >> go.mod
-RUN echo "replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig latest" >> go.mod
-RUN echo "replace oioidwsrest => ../oioidwsrest" >> go.mod
+COPY go-caddy.mod go.mod
+RUN go mod download
 
 # Kitcaddy module source
 COPY ./caddy-plugin /caddy/
 RUN go test caddy/caddyoioidwsrest
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/caddy .
+RUN cat go.mod
 
 FROM alpine:3.10.3 as certs
 RUN apk --update add ca-certificates
