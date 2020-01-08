@@ -10,7 +10,6 @@ require (
   github.com/google/uuid v1.1.1
   github.com/jonboulle/clockwork v0.1.0
   github.com/KvalitetsIT/gosecurityprotocol v0.0.0-20191211203256-073cc6fea877
-  github.com/KvalitetsIT/gosecurityprotocol v0.0.0-20191211203256-073cc6fea877
   github.com/KvalitetsIT/gostsclient v0.0.0-20190916204615-bbb628cf6e00
   github.com/pkg/errors v0.8.1
   github.com/russellhaering/gosaml2 v0.3.1
@@ -20,4 +19,5 @@ require (
   go.uber.org/atomic v1.5.0
   go.uber.org/multierr v1.3.0
   go.uber.org/zap v1.13.0
+  github.com/caddyserver/caddy/v2 v2.0.0-00010101000000-000000000000
 )
