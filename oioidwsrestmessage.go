@@ -50,7 +50,7 @@ func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response, logg
     return &OioIdwsRestAuthenticationInfo{ Token: fmt.Sprintf("%s %s", jsonResponse.TokenType, jsonResponse.AccessToken), ExpiresIn: jsonResponse.ExpiresIn }, nil
 }
 
-func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprotocol.SessionData) (int, error) {
+func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprotocol.SessionData, logger *zap.SugaredLogger) (int, error) {
 
 	// Create authentication payload from sessiondata
 	authResponsePayload := OioIdwsRestAuthResponse {
@@ -62,8 +62,10 @@ func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprot
 	// Serialize the authentication payload and write it to the response
 	payload, err := json.Marshal(authResponsePayload)
 	if (err != nil) {
+	    logger.Warnf("Cannot marshal response: %v",err)
 		return http.StatusUnauthorized, err
 	}
+	logger.Debugf("Returning payload: %s",string(payload))
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, string(payload))
 
