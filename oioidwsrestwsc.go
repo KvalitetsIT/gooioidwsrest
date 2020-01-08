@@ -79,7 +79,10 @@ type OioIdwsRestHttpProtocolClient struct {
 
 func CreateCaCertPool(trustCertFiles []string) *x509.CertPool {
 
-        caCertPool := x509.NewCertPool()
+        caCertPool,err := x509.SystemCertPool()
+        if ( err != nil ) {
+            panic(err)
+        }
         for _, trustCertFile := range trustCertFiles {
                 trustCert, err := ioutil.ReadFile(trustCertFile)
                 if (err != nil) {
@@ -228,7 +231,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
 
 	// Let the service do its work
-        return service.Handle(w, r)
+    return service.Handle(w, r)
 }
 
 func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken []byte, claims map[string]string) (string, error) {
