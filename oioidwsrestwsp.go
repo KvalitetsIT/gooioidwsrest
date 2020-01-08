@@ -70,12 +70,14 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 	// Check that the request is a HTTPS request and that it contains a client certificate
         sslClientCertificate := a.ClientCertHandler(r)
 	if (a.HoK && sslClientCertificate == nil) {
-                return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
+	   a.Logger.Warn("The client did not provide a certificate")
+       return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
 	}
 
 	// Get the session id
 	sessionId, err := a.getSessionId(r)
 	if (err != nil) {
+	    a.Logger.Warnf("The client did provide SessionId: %v",err)
 		return http.StatusUnauthorized, err
 	}
 
@@ -83,11 +85,12 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 	if (sessionId != "") {
 		sessionData, err := a.sessionCache.FindSessionDataForSessionId(sessionId)
 		if (err != nil) {
+		    a.Logger.Warnf("Cannot look up sessiondata: %v",err)
 			return http.StatusInternalServerError, err
 		}
 
 		if (sessionData != nil) {
-
+            a.Logger.Debug("Session data found")
 			// Validate HoK
 			hashFromClientCert := hashFromCertificate(sslClientCertificate)
 			if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
@@ -105,9 +108,10 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 		}
 	}
 
-	// If the request is not authenticated maybe it is a request for authentication?
+	a.Logger.Debug("If the request is not authenticated maybe it is a request for authentication?")
 	assertionAsStr, authenticatedAssertion, authErr := a.tokenAuthenticator.Authenticate(sslClientCertificate, r)
 	if (authErr == nil && authenticatedAssertion != nil) {
+        a.Logger.Debug("Client authenticated")
 
 		createdSessionId := uuid.New().String()
 
@@ -123,8 +127,9 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 
 		err = a.sessionCache.SaveSessionData(sessionData)
 		if (err != nil) {
-                        return http.StatusInternalServerError, err
-                }
+		   a.Logger.Warnf("Cannot save sessiondata: %v",err)
+           return http.StatusInternalServerError, err
+        }
 
 		// Succesful authentication
 		resCode, err := ResponseWithSuccessfulAuth(w, sessionData)

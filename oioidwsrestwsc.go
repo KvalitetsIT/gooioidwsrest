@@ -284,9 +284,10 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if (err != nil) {
+	    client.Logger.Warnf("Error getting token from %s: %v",url,err)
 		return nil, err
 	}
-	return CreateAuthenticatonRequestInfoFromReponse(authResponse)
+	return CreateAuthenticatonRequestInfoFromReponse(authResponse, client.Logger)
 }
 
 func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) (error) {

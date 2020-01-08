@@ -4,11 +4,11 @@ import (
         "net/http"
 	"io"
 	"fmt"
-	"log"
 	"encoding/json"
 	"io/ioutil"
 	"time"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
+	"go.uber.org/zap"
 )
 
 const OIO_IDWS_REST_TOKEN_TYPE_HOLDER_OF_KEY = "Holder-of-key"
@@ -22,30 +22,32 @@ type OioIdwsRestAuthResponse struct {
 	ExpiresIn	int64	`json:"expires_in"`
 }
 
-func CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse *http.Response) (*OioIdwsRestAuthResponse, error) {
+func CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse *http.Response, logger *zap.SugaredLogger) (*OioIdwsRestAuthResponse, error) {
         if (authResponse.StatusCode != http.StatusOK) {
-                return nil, fmt.Errorf(fmt.Sprintf("Authentication failed with statusCode: %d", authResponse.StatusCode))
+            logger.Warnf("Authentication failed with statusCode: %d", authResponse.StatusCode)
+            return nil, fmt.Errorf(fmt.Sprintf("Authentication failed with statusCode: %d", authResponse.StatusCode))
         }
         responseBody, err := ioutil.ReadAll(authResponse.Body)
         if (err != nil) {
-                return nil, err
+           logger.Warnf("Cannot read responseBody: %v", err)
+           return nil, err
         }
 
         var jsonResponse OioIdwsRestAuthResponse
         err = json.Unmarshal([]byte(responseBody), &jsonResponse)
         if (err != nil) {
-                log.Println(fmt.Sprintf("[ERROR] error unmarshalling response: %s", responseBody))
-                return nil, err
+           logger.Warnf("Cannot unmarshal body: %v",err)
+           return nil, err
         }
         return &jsonResponse, nil
 }
 
-func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response) (*OioIdwsRestAuthenticationInfo, error) {
-	jsonResponse, err := CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse)
+func CreateAuthenticatonRequestInfoFromReponse(authResponse *http.Response, logger *zap.SugaredLogger) (*OioIdwsRestAuthenticationInfo, error) {
+	jsonResponse, err := CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse,logger)
 	if (err != nil) {
 		return nil, err
 	}
-        return &OioIdwsRestAuthenticationInfo{ Token: fmt.Sprintf("%s %s", jsonResponse.TokenType, jsonResponse.AccessToken), ExpiresIn: jsonResponse.ExpiresIn }, nil
+    return &OioIdwsRestAuthenticationInfo{ Token: fmt.Sprintf("%s %s", jsonResponse.TokenType, jsonResponse.AccessToken), ExpiresIn: jsonResponse.ExpiresIn }, nil
 }
 
 func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprotocol.SessionData) (int, error) {

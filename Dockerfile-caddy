@@ -12,7 +12,6 @@ RUN go mod download
 COPY ./caddy-plugin /caddy/
 RUN go test caddy/caddyoioidwsrest
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/caddy .
-RUN cat go.mod
 
 FROM alpine:3.10.3 as certs
 RUN apk --update add ca-certificates

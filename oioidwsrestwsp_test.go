@@ -85,7 +85,7 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
 
         // When
         authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
-        oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp)
+        oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp,zap.NewNop().Sugar())
 	wsp.ClientCertHandler = mockHijackerCertificate
         serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
         serviceResp, serviceErr := httpClient.Do(serviceRequest)
@@ -171,7 +171,7 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
 
 	// When
 	authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
-	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp)
+	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp,zap.NewNop().Sugar())
 	serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
 	serviceResp, serviceErr := httpClient.Do(serviceRequest)
 	sessionDataResp, sessionDataErr := httpClient.Do(createServiceRequest(sessionDataUrl, oioIdwsRestAuth))
