@@ -44,7 +44,7 @@
                     "/"
                   ]
                 }
-              ]
+              ],
               "handle": [
                 {
                   "handler": "oioidwsrestwsp",
