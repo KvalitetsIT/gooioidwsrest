@@ -211,7 +211,6 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		    client.Logger.Warnf("Error getting token: %v",err)
 			return http.StatusUnauthorized, err
 		}
-1
 		hash := "DefaultHash"
 		if (sessionData != nil) {
 			hash = sessionData.Hash
