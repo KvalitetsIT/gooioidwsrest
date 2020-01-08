@@ -104,7 +104,8 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 			}
 
 			// The session id ok ... pass-through to next handler
-        		return service.Handle(w, r)
+			a.Logger.debug("Calling backend service")
+            return service.Handle(w, r)
 		}
 	}
 

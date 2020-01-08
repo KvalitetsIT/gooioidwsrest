@@ -211,7 +211,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		    client.Logger.Warnf("Error getting token: %v",err)
 			return http.StatusUnauthorized, err
 		}
-
+1
 		hash := "DefaultHash"
 		if (sessionData != nil) {
 			hash = sessionData.Hash
@@ -220,6 +220,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		if (sessionId != "") {
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if (err != nil) {
+			    client.Logger.Warnf("Cannot save sessiondata: %v",err)
                 	        return http.StatusUnauthorized, err
                 	}
 		} else {
@@ -229,8 +230,9 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 
 	// Add the authentication token to the request
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
-
+    client.Logger.Debug("Authentication token added to client")
 	// Let the service do its work
+	client.Logger.Debug("Calling Service")
     return service.Handle(w, r)
 }
 
