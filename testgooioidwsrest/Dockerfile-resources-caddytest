@@ -20,6 +20,7 @@ ENV WSP_SSL_CERTIFICATE_FILE /ssl/testserviceaa-ssl.crt
 ENV WSP_SSL_KEY_FILE /ssl/testserviceaa-ssl.key
 ENV WSP_BACKEND_HOST testservicea-backend
 ENV WSP_BACKEND_PORT 80
+ENV WSP_CLIENT_LOGLEVEL debug
 ENV WSP_AUDIENCE_RESTRICTION urn:kit:testa:servicea
 ENV WSP_TRUST_CERT_FILES \"/wsp/trust/sts.cer\"
 RUN envsubst < /caddyfiletemplates/Caddyfile-wsp > /tmp/caddywsp.json
@@ -31,6 +32,7 @@ ENV MONGO_DATABASE testwsc8080
 ENV WSC_STS_URL https://sts/sts/service/sts
 ENV WSC_CLIENT_CERTIFICATE_FILE /wsc/certificates/client.cer
 ENV WSC_CLIENT_KEY_FILE /wsc/certificates/client.pem
+ENV WSC_CLIENT_LOGLEVEL debug
 ENV WSC_SERVICE_ENDPOINT_HOST testserviceaa
 ENV WSC_SERVICE_ENDPOINT_PORT 443
 ENV WSC_SERVICE_AUDIENCE urn:kit:testa:servicea
