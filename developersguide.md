@@ -109,3 +109,8 @@ Strukturen af værdien (decoded er som følger):
 ```
 
 Således sendes en liste af key+value par, hvor *key* definerer navnet på claimen og *value* definerer værdien. 
+
+
+## Generating certificates
+
+openssl req -new -x509 -days 3652 -nodes -out gowsp.cert -keyout gowsp.pem -subj "/CN=gowsp" -extensions san -config <(echo '[req]'; echo 'distinguished_name=req';echo '[san]'; echo 'subjectAltName=DNS:gowsp')
