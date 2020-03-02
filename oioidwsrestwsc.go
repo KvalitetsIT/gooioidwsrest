@@ -263,7 +263,8 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 		// Decode it - it's base64 encoded
 		decodedToken, err = base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
 		if err != nil {
-			return nil, err
+		   client.Logger.Warnf("Error decoding token: %v",sessionData.Authenticationtoken)
+		   return nil, err
 		}
 	}
 
