@@ -211,6 +211,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		}
 
 		if sessionId != "" {
+			client.Logger.Debugf("Saving token for session: %v => %v", sessionId,authentication.Token)
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if err != nil {
 				client.Logger.Warnf("Cannot save sessiondata: %v", err)
