@@ -46,7 +46,7 @@
                        },
                                        "upstreams":[
                                           {
-                                             "dial":"${WSC_SERVICE_ENDPOINT_HOST}:443"
+                                             "dial":"${WSC_SERVICE_ENDPOINT_HOST}:${WSC_SERVICE_ENDPOINT_HOST}"
                                           }
                                        ]
                                     }
