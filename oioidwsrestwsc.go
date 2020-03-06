@@ -172,7 +172,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 	var sessionData *securityprotocol.SessionData = nil
 	var tokenData *securityprotocol.TokenData
 	if sessionId != "" {
-		client.Logger.Debug("sessionId found")
+		client.Logger.Debugf("sessionId found: %v", sessionId)
 		var err error
 		client.Logger.Debug("Check if we have a token cached matching the session")
 		tokenData, err = client.tokenCache.FindTokenDataForSessionId(sessionId)
@@ -211,7 +211,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		}
 
 		if sessionId != "" {
-			client.Logger.Debugf("Saving token for session: %v => %v", sessionId,authentication.Token)
+			client.Logger.Debugf("Saving token for session: %v => %v", sessionId, authentication.Token)
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if err != nil {
 				client.Logger.Warnf("Cannot save sessiondata: %v", err)
@@ -237,8 +237,10 @@ func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken 
 	var err error
 
 	if len(decodedToken) > 0 {
+		client.Logger.Debugf("Get token acting as: %v", decodedToken)
 		response, err = client.stsClient.ActAs(client.serviceAudience, decodedToken, claims)
 	} else {
+		client.Logger.Debugf("Get token from STS")
 		response, err = client.stsClient.GetToken(client.serviceAudience, claims)
 	}
 	if err != nil {
@@ -264,18 +266,18 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 		// Decode it - it's base64 encoded
 		decodedToken, err = base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
 		if err != nil {
-		   client.Logger.Warnf("Error decoding token: %v",sessionData.Authenticationtoken)
-		   return nil, err
+			client.Logger.Warnf("Error decoding token: %v", sessionData.Authenticationtoken)
+			return nil, err
 		}
 	}
 
-	client.Logger.Debug("Get SAML assertion from STS")
+	client.Logger.Debugf("Get SAML assertion from STS using decodedToken: %v", decodedToken)
 	encodedToken, err := client.GetEncodedTokenFromSts(decodedToken, claims)
 	if err != nil {
-		client.Logger.Debug("Cannot get token from STS")
+		client.Logger.Debugf("Cannot get token from STS: %v", err)
 		return nil, err
 	}
-	client.Logger.Debug("Got token from STS")
+	client.Logger.Debugf("Got token from STS: %v", encodedToken)
 	// Use that SAML assertion to authenticate
 	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
