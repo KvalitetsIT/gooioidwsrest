@@ -183,11 +183,14 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 
 		// Get sessiondata matching the session
 		if client.sessionDataFetcher != nil {
+			client.Logger.Debug("Fetching sessiondata")
 			sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
 			if err != nil {
 				client.Logger.Warnf("Error fetching sessiondata: %v", err)
 				return http.StatusInternalServerError, err
 			}
+		} else {
+			client.Logger.Debug("No sessionDataFetcher provided")
 		}
 	}
 
@@ -263,8 +266,10 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	decodedToken := []byte{}
 	var err error
 	if sessionData != nil && len(sessionData.Authenticationtoken) > 0 {
+		client.Logger.Debugf("Session data found: %v", sessionData)
 		// Decode it - it's base64 encoded
 		decodedToken, err = base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
+		client.Logger.Debugf("Decoded token %v=>%v", sessionData.Authenticationtoken, decodedToken)
 		if err != nil {
 			client.Logger.Warnf("Error decoding token: %v", sessionData.Authenticationtoken)
 			return nil, err

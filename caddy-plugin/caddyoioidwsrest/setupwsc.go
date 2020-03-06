@@ -1,14 +1,14 @@
 package caddyoioidwsrest
 
 import (
-        "crypto/tls"
+	"crypto/tls"
 
 	"fmt"
-	"strconv"
-	"oioidwsrest"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
-//	"fmt"
-//	"io"
+	"oioidwsrest"
+	"strconv"
+	//	"fmt"
+	//	"io"
 	"net/http"
 
 	"github.com/caddyserver/caddy/v2"
@@ -16,15 +16,12 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 
-	 "go.uber.org/zap"
+	"go.uber.org/zap"
 )
 
 const DEFAULT_VALUE_SESSION_HEADER_NAME = "SESSION"
 
-
 type CaddyOioIdwsRestWsc struct {
-
-
 	MongoHost string `json:"mongo_host,omitempty"`
 
 	MongoPort string `json:"mongo_port,omitempty"`
@@ -59,13 +56,11 @@ func (m CaddyOioIdwsRestWsc) ServeHTTP(w http.ResponseWriter, r *http.Request, n
 	nextService.Handler = next
 
 	httpCode, err := m.ClientProtocol.HandleService(w, r, nextService)
-	if (httpCode != http.StatusOK) {
+	if httpCode != http.StatusOK {
 		return caddyhttp.Error(httpCode, err)
 	}
 	return err
 }
-
-
 
 func init() {
 	caddy.RegisterModule(CaddyOioIdwsRestWsc{})
@@ -82,76 +77,75 @@ func (CaddyOioIdwsRestWsc) CaddyModule() caddy.ModuleInfo {
 
 // Provision implements caddy.Provisioner.
 func (m *CaddyOioIdwsRestWsc) Provision(ctx caddy.Context) error {
-    m.Logger = ctx.Logger(m).Sugar()
-    m.Logger.Info("Provisioning OioIdwsRestWsc Caddy module")
+	m.Logger = ctx.Logger(m).Sugar()
+	m.Logger.Info("Provisioning OioIdwsRestWsc Caddy module")
 	// Create Mongo Token Cache
 	mongo_port := "27017"
-	if (len(m.MongoPort) != 0) {
+	if len(m.MongoPort) != 0 {
 		_, conv_err := strconv.Atoi(m.MongoPort)
-        	if (conv_err != nil) {
-                	return conv_err
-        	}
+		if conv_err != nil {
+			return conv_err
+		}
 		mongo_port = m.MongoPort
-        }
+	}
 	mongo_url := fmt.Sprintf("%s:%s", m.MongoHost, mongo_port)
 	m.Logger.Debugf("Using MongoDB:%s", mongo_url)
 	tokenCache, err := securityprotocol.NewMongoTokenCache(mongo_url, m.MongoDb, "wscsessions")
-	if (err != nil) {
-	    m.Logger.Warnf("Can't setup tokenCache: %v", err)
+	if err != nil {
+		m.Logger.Warnf("Can't setup tokenCache: %v", err)
 		return err
 	}
 
 	// Maps to wsc config
-        wscConfig := new(oioidwsrest.OioIdwsRestHttpProtocolClientConfig)
-        wscConfig.SessionHeaderName = DEFAULT_VALUE_SESSION_HEADER_NAME
-        wscConfig.SessionDataFetcher = new(securityprotocol.NilSessionDataFetcher)
-        wscConfig.StsUrl = m.StsUrl
-        wscConfig.TrustCertFiles = m.TrustCertFiles
-        wscConfig.ClientCertFile = m.ClientCertFile
-        wscConfig.ClientKeyFile = m.ClientKeyFile
-        wscConfig.ServiceAudience = m.ServiceAudience
-        wscConfig.ServiceEndpoint = m.ServiceEndpoint
+	wscConfig := new(oioidwsrest.OioIdwsRestHttpProtocolClientConfig)
+	wscConfig.SessionHeaderName = DEFAULT_VALUE_SESSION_HEADER_NAME
+	wscConfig.SessionDataFetcher = new(securityprotocol.NilSessionDataFetcher)
+	wscConfig.StsUrl = m.StsUrl
+	wscConfig.TrustCertFiles = m.TrustCertFiles
+	wscConfig.ClientCertFile = m.ClientCertFile
+	wscConfig.ClientKeyFile = m.ClientKeyFile
+	wscConfig.ServiceAudience = m.ServiceAudience
+	wscConfig.ServiceEndpoint = m.ServiceEndpoint
 
 	// Create sessiondatafetcher if configured
-	if (len(m.SessionDataUrl) > 0) {
-
+	if len(m.SessionDataUrl) > 0 {
+		m.Logger.Debugf("Setting up sessing data fetcher using URL: %v")
 		caCertPool := oioidwsrest.CreateCaCertPool(m.TrustCertFiles)
 		tlsConfig := &tls.Config{
-                	RootCAs:      caCertPool,
+			RootCAs: caCertPool,
 		}
-        	transport := &http.Transport{TLSClientConfig: tlsConfig}
-        	client := &http.Client{Transport: transport}
+		transport := &http.Transport{TLSClientConfig: tlsConfig}
+		client := &http.Client{Transport: transport}
 
 		wscConfig.SessionDataFetcher = securityprotocol.NewServiceCallSessionDataFetcher(m.SessionDataUrl, client)
 	}
 
 	m.ClientProtocol = oioidwsrest.NewOioIdwsRestHttpProtocolClient(*wscConfig, tokenCache, m.Logger)
-	
+
 	return nil
 }
 
 // Validate implements caddy.Validator.
 func (m *CaddyOioIdwsRestWsc) Validate() error {
 
-	if (len(m.MongoHost) == 0) {
+	if len(m.MongoHost) == 0 {
 		return fmt.Errorf("mongo_host must be configured")
 	}
 
-        if (len(m.MongoDb) == 0) {
-                return fmt.Errorf("mongo_db must be configured")
-        }
+	if len(m.MongoDb) == 0 {
+		return fmt.Errorf("mongo_db must be configured")
+	}
 
-        if (len(m.StsUrl) == 0) {
-                return fmt.Errorf("sts_url must be configured")
-        }
+	if len(m.StsUrl) == 0 {
+		return fmt.Errorf("sts_url must be configured")
+	}
 
-        if (len(m.ServiceEndpoint) == 0) {
-                return fmt.Errorf("service_endpoint must be configured")
-        }
+	if len(m.ServiceEndpoint) == 0 {
+		return fmt.Errorf("service_endpoint must be configured")
+	}
 
 	return nil
 }
-
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
 func (m *CaddyOioIdwsRestWsc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
@@ -172,8 +166,8 @@ func parseCaddyfileWsc(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, err
 
 // Interface guards
 var (
-	_ caddy.Provisioner              = (*CaddyOioIdwsRestWsc)(nil)
-	_ caddy.Validator                = (*CaddyOioIdwsRestWsc)(nil)
-	_ caddyhttp.MiddlewareHandler    = (*CaddyOioIdwsRestWsc)(nil)
-	_ caddyfile.Unmarshaler          = (*CaddyOioIdwsRestWsc)(nil)
+	_ caddy.Provisioner           = (*CaddyOioIdwsRestWsc)(nil)
+	_ caddy.Validator             = (*CaddyOioIdwsRestWsc)(nil)
+	_ caddyhttp.MiddlewareHandler = (*CaddyOioIdwsRestWsc)(nil)
+	_ caddyfile.Unmarshaler       = (*CaddyOioIdwsRestWsc)(nil)
 )
