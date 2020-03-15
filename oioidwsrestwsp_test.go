@@ -1,18 +1,22 @@
 package oioidwsrest
 
 import (
+	"fmt"
 	"strings"
 	"testing"
  	"gotest.tools/assert"
-	"fmt"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"io/ioutil"
 	"crypto/x509"
 	"encoding/pem"
+	"encoding/xml"
+	"encoding/base64"
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
+	saml2 "github.com/russellhaering/gosaml2/types"
 	"go.uber.org/zap"
+	"time"
 )
 
 
@@ -164,6 +168,7 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
         httpClient := httpServer.Client()
 	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
 	encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+	time.Sleep(2000) // Just to check that the timestamps are set correctly in the session
 	authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
 	authUrl := fmt.Sprintf("%s/token", httpServer.URL)
 	serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
@@ -188,20 +193,43 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
 	assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
 
 	assert.Equal(t, http.StatusTeapot, serviceResp.StatusCode)
-
 	assert.Equal(t, http.StatusOK, sessionDataResp.StatusCode)
 
 	getSessionDataBody, _ := ioutil.ReadAll(sessionDataResp.Body)
         var jsonData map[string]interface{}
         unMarshalErr := json.Unmarshal(getSessionDataBody, &jsonData)
 	assert.NilError(t, unMarshalErr)
+
+	// Check UserAttributes
 	userAttributesValue, containsUserAttributes := jsonData["UserAttributes"]
-	assert.Assert(t, containsUserAttributes)
-	userAttributes, _ := userAttributesValue.(map[string][]string)
-	_/*testTest*/, _/*containsTestTest*/ = userAttributes["test:test"]
-	//assert.Assert(t, containsTestTest)
-	//assert.Equal(t, 1, len(testTest))
-	//assert.Equal(t, "autovalue2", testTest[0])
+	assert.Assert(t, containsUserAttributes, "Expected 'UserAttributes' to be present in the sessiondata")
+	userAttributes, userAttributesMapOk := userAttributesValue.(map[string]interface{})
+	assert.Assert(t, userAttributesMapOk, "Expected the 'UserAttributes' to be a map")
+	assert.Equal(t, 2, len(userAttributes), "Expected number of keys in 'UserAttributes' map")
+	testTestValue, containsTestTest := userAttributes["test:test"]
+	assert.Assert(t, containsTestTest)
+	testTest, testTestOk := testTestValue.([]interface{})
+	assert.Assert(t, testTestOk, "Expected the 'UserAttributes[test:test]' to be an array")
+	assert.Equal(t, 2, len(testTest))
+	assert.Equal(t, "autovalue1", testTest[0])
+	assert.Equal(t, "autovalue2", testTest[1])
+
+	// Check Authenticationtoken
+	authenticationTokenBase64ValueJson, containsAuthenticationToken := jsonData["Authenticationtoken"]
+	authenticationTokenBase64Value, _ := authenticationTokenBase64ValueJson.(string)
+	assert.Assert(t, containsAuthenticationToken, "Expected the sessiondata to contain 'Authenticationtoken'")
+	authenticationTokenValue, errAuthenticationTokenDecode := base64.StdEncoding.DecodeString(authenticationTokenBase64Value)
+	assert.NilError(t, errAuthenticationTokenDecode, "Expected the 'Authenticationtoken' to be in base64 format")
+	var assertion saml2.Assertion
+        errAssertionUnmarshal := xml.Unmarshal([]byte(authenticationTokenValue), &assertion)
+	assert.NilError(t, errAssertionUnmarshal, "Expected the base64 decoded 'Authenticationtoken' from the sessiondata to be a parsable SAML assertion")
+
+	// Check Timestamp/expiry
+	sessionDataTimestamp, sessionDataTimestampParseErr := time.Parse(time.RFC3339, (jsonData["Timestamp"]).(string))
+        assert.NilError(t, sessionDataTimestampParseErr, "Expected the 'Timestamp' from the sessiondata to be a parsable timestamp")
+	notAfterDateFromAssertion, notAfterDateParseErr := time.Parse(time.RFC3339, assertion.Conditions.NotOnOrAfter)
+	assert.NilError(t, notAfterDateParseErr, "Expected the 'NotOnOrAfter' from the SAML assertion to be a parsable timestamp")
+	assert.Equal(t, sessionDataTimestamp, notAfterDateFromAssertion, "Expected the session timeout and the notAfterDate from the SAML assertion to match")
 }
 
 

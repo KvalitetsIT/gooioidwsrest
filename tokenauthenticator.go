@@ -92,15 +92,15 @@ func (t TokenAuthenticator) processAuthenticationRequest(clientCert *x509.Certif
 	assertionStr := strings.TrimPrefix(string(body), "saml-token=")
 
 	// Parse the assertion
-	authenticatedAssertion, err := t.ParseAndValidateAuthenticationRequestPayload(assertionStr, clientCert)
+	decodedAssertion, authenticatedAssertion, err := t.ParseAndValidateAuthenticationRequestPayload(assertionStr, clientCert)
 	if (err != nil) {
 		return assertionStr, nil, err
 	}
 
-	return assertionStr, authenticatedAssertion, err
+	return decodedAssertion, authenticatedAssertion, err
 }
 
-func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body string, clientCert *x509.Certificate) (*AuthenticatedAssertion, error) {
+func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body string, clientCert *x509.Certificate) (string, *AuthenticatedAssertion, error) {
 
 	auth := AuthenticatedAssertion{}
 
@@ -111,11 +111,11 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 	doc := etree.NewDocument()
 	err = doc.ReadFromBytes(decoded)
 	if (err != nil) {
-		return nil, err
+		return "", nil, err
 	}
 	_, err = t.validationContext.Validate(doc.Root())
     	if (err != nil) {
-		return nil, err
+		return "", nil, err
     	}
 
         // Parse the assertion
@@ -124,7 +124,7 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
         xmlDecoder.CharsetReader = identReader
         err = xmlDecoder.Decode(&assertion)
 	if (err != nil) {
-		return nil, err
+		return "", nil, err
 	}
 
 	// TODO: Check assertion is valid according to SAML specification
@@ -132,14 +132,14 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 
 		warningInfo, err := t.samlServiceProvider.VerifyAssertionConditions(assertion)
 		if (err != nil) {
-			return nil, err
+			return "", nil, err
 		}
 		if (warningInfo != nil && warningInfo.InvalidTime) {
-			return nil, fmt.Errorf("SAML Assertion was not valid due to invalid time")
+			return "", nil, fmt.Errorf("SAML Assertion was not valid due to invalid time")
 		}
 
 		if ((len(t.samlServiceProvider.AudienceURI) > 0) && warningInfo != nil && warningInfo.NotInAudience) {
-			return nil, fmt.Errorf("SAML Assertion was not valid due to audience restriction")
+			return "", nil, fmt.Errorf("SAML Assertion was not valid due to audience restriction")
 		}
 	}
 
@@ -149,7 +149,7 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 		// Calculate hash of public key in client cert to compare with public key in assertion
                 clientCertPubBytes, err := x509.MarshalPKIXPublicKey(clientCert.PublicKey)
                 if (err != nil) {
-                	return nil, fmt.Errorf(fmt.Sprintf("Could not marshal public key from client SSL"))
+                	return "", nil, fmt.Errorf(fmt.Sprintf("Could not marshal public key from client SSL"))
                 }
                 clientCertHash := sha256.Sum256(clientCertPubBytes)
 
@@ -157,71 +157,71 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 		// Find subjectkeyinfo in assertion and parse it into structure
 		subjectKeyInfoPath, err := etree.CompilePath("./Assertion/Subject/SubjectConfirmation/SubjectConfirmationData/KeyInfo")
 		if (err != nil) {
-			return nil, fmt.Errorf("Could not compile xpath for subjectkeyinfo")
+			return "", nil, fmt.Errorf("Could not compile xpath for subjectkeyinfo")
 		}
 		keyInfoElement := doc.FindElementPath(subjectKeyInfoPath)
 		if (keyInfoElement == nil) {
-			return nil, fmt.Errorf("Could not find KeyInfo element in SubjectConfirmationData in assertion")
+			return "", nil, fmt.Errorf("Could not find KeyInfo element in SubjectConfirmationData in assertion")
 		}
 
 		keyInfoDoc := etree.NewDocument()
 		keyInfoDoc.SetRoot(keyInfoElement)
 		keyInfoDocStr, err := keyInfoDoc.WriteToString()
 		if (err != nil) {
-			return nil, fmt.Errorf("Error serializing Key Info document")
+			return "", nil, fmt.Errorf("Error serializing Key Info document")
 		}
 		keyInfo := &dsigtypes.KeyInfo{}
 		keyInfoDecoder := xml.NewDecoder(bytes.NewReader([]byte(keyInfoDocStr)))
                 keyInfoDecoder.CharsetReader = identReader
                 err = keyInfoDecoder.Decode(&keyInfo)
 		if (err != nil) {
-			return nil, fmt.Errorf("Could not decode keyInfo document")
+			return "", nil, fmt.Errorf("Could not decode keyInfo document")
 		}
 
 		// Find public key in assertion
 		if (len(keyInfo.X509Data.X509Certificates) > 0) {
 			// Its right there
-			return nil, fmt.Errorf("Not implemented 48325932 -should be easy though")
+			return "", nil, fmt.Errorf("Not implemented 48325932 -should be easy though")
                 } else {
 			// Its not embedded - construct public key in assertion from modulus and exponent
 			modulusPath, err := etree.CompilePath("./KeyInfo/KeyValue/RSAKeyValue/Modulus")
 			if (err != nil) {
-       	                        return nil, fmt.Errorf("Could not compile xpath for modulus")
+       	                        return "", nil, fmt.Errorf("Could not compile xpath for modulus")
        	       	        }
 			exponentPath, err := etree.CompilePath("./KeyInfo/KeyValue/RSAKeyValue/Exponent")
 			if (err != nil) {
-                       	        return nil, fmt.Errorf("Could not compile xpath for exponent")
+                       	        return "", nil, fmt.Errorf("Could not compile xpath for exponent")
                        	}
 
 			modulusElement := keyInfoDoc.FindElementPath(modulusPath)
 			exponentElement := keyInfoDoc.FindElementPath(exponentPath)
 			if (modulusElement == nil || exponentElement == nil) {
-				return nil, fmt.Errorf("Modulus or Exponent not found")
+				return "", nil, fmt.Errorf("Modulus or Exponent not found")
 			}
 
 			modFromAssertion := modulusElement.Text()
 			decodedModFromAssertion, err := base64.StdEncoding.DecodeString(modFromAssertion)
 			if (err != nil) {
-				return nil, fmt.Errorf(fmt.Sprintf("Could not decode modulus from assertion (value from assertion: %s)", modFromAssertion))
+				return "", nil, fmt.Errorf(fmt.Sprintf("Could not decode modulus from assertion (value from assertion: %s)", modFromAssertion))
 			}
 
 			e := 65537 // Most likely :-)
 			publicKeyFromAssertion := &rsa.PublicKey{N: new(big.Int).SetBytes(decodedModFromAssertion), E: e}
 			derPublicKeyFromAssertion, err := x509.MarshalPKIXPublicKey(publicKeyFromAssertion)
 			if (err != nil) {
-				return nil, fmt.Errorf(fmt.Sprintf("Could not marshal public key from assertion"))
+				return "", nil, fmt.Errorf(fmt.Sprintf("Could not marshal public key from assertion"))
 			}
 			assertionHash := sha256.Sum256(derPublicKeyFromAssertion)
 
 			// Compare hashes to ensure HoK
 			if (assertionHash != clientCertHash) {
-				return nil, fmt.Errorf(fmt.Sprintf("Public key in assertion does not match client SSL certificate"))
+				return "", nil, fmt.Errorf(fmt.Sprintf("Public key in assertion does not match client SSL certificate"))
 			}
 		}
 	}
 	auth.assertion = assertion
 
-	return &auth, err
+	return string(decoded), &auth, err
 }
 
 func identReader(encoding string, input io.Reader) (io.Reader, error) {
