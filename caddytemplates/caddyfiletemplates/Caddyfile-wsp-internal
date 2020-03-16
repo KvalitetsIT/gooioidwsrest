@@ -27,7 +27,7 @@
                            "mongo_db": "${MONGO_DATABASE}",
                            "trust_cert_files": [ ${WSP_TRUST_CERT_FILES} ],
                            "audience_restriction": "${WSP_AUDIENCE_RESTRICTION}",
-                           "hok": "true"
+                           "hok": "false"
 				}
                           ],
                           "match":[
