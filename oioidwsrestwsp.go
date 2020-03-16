@@ -22,6 +22,8 @@ type OioIdwsRestHttpProtocolServerConfig struct {
 	AudienceRestriction	string
 
 	Service                 securityprotocol.HttpHandler
+
+	HoK			bool
 }
 
 type OioIdwsRestWsp struct {
@@ -44,8 +46,9 @@ type OioIdwsRestWsp struct {
 func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, logger *zap.SugaredLogger) *OioIdwsRestWsp {
 
 	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true, logger)
-
-        return NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
+        wsp := NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
+	wsp.HoK = config.HoK
+	return wsp
 }
 
 

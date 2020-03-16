@@ -246,6 +246,7 @@ func createConfig() *OioIdwsRestHttpProtocolServerConfig {
 	c.TrustCertFiles = []string { "./testgooioidwsrest/sts/sts.cer" }
 	c.Service = new(mockService)
 	c.AudienceRestriction = "urn:kit:testa:servicea"
+	c.HoK = true
         return c
 }
 

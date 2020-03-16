@@ -28,6 +28,8 @@ type CaddyOioIdwsRestWsp struct {
 
 	AudienceRestriction string `json:"audience_restriction,omitempty"`
 
+	HoK string `json:"hok,omitempty"`
+
 	ProviderProtocol *oioidwsrest.OioIdwsRestWsp
 
 	Logger *zap.SugaredLogger
@@ -88,6 +90,12 @@ func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
         wspConfig.TrustCertFiles = m.TrustCertFiles
         wspConfig.AudienceRestriction = m.AudienceRestriction
 
+	if (len(m.HoK) > 0) {
+		wspConfig.HoK, _ = strconv.ParseBool(m.HoK)
+	} else {
+		wspConfig.HoK = true
+	}
+
 	m.ProviderProtocol = oioidwsrest.NewOioIdwsRestWspFromConfig(wspConfig, sessionCache, m.Logger)
 
 	return nil
@@ -103,6 +111,13 @@ func (m *CaddyOioIdwsRestWsp) Validate() error {
         if (len(m.MongoDb) == 0) {
                 return fmt.Errorf("mongo_db must be configured")
         }
+
+	if (len(m.HoK) > 0) {
+		_, err := strconv.ParseBool(m.HoK)
+		if (err != nil) {
+			return fmt.Errorf(fmt.Sprintf("Error converting hok value: %s", err.Error()))
+		}
+	}
 
 	return nil
 }
