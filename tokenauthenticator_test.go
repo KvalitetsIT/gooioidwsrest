@@ -5,12 +5,13 @@ import (
  	"gotest.tools/assert"
 	"io/ioutil"
 	"encoding/base64"
+	"go.uber.org/zap"
 )
 
 func TestParseAuthenticationRequestPayload(t *testing.T) {
 
 	// Given
-        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false)
+        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false, zap.NewNop().Sugar())
 	bs, err := ioutil.ReadFile("./testdata/authenticate_body_first")
 	assert.NilError(t, err, "couldn't read testdata authenticate_body_first")
 	bsDecoded, errBsDecode := base64.StdEncoding.DecodeString(string(bs))
@@ -30,7 +31,7 @@ func TestParseAuthenticationRequestPayload(t *testing.T) {
 func TestParseAuthenticationRequestWithPrefix(t *testing.T) {
 
         // Given
-        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false)
+        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false, zap.NewNop().Sugar())
         bs, err := ioutil.ReadFile("./testdata/authenticate_body_first")
         assert.NilError(t, err, "couldn't read testdata authenticate_body_first")
 	withPrefix := "saml-token="+string(bs)
@@ -47,7 +48,7 @@ func TestParseAuthenticationRequestWithPrefix(t *testing.T) {
 func TestParseAuthenticationRequestPayloadWithTokenSignedByUnknownSts(t *testing.T) {
 
         // Given
-        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false)
+        subject := NewTokenAuthenticator("", []string { "./testdata/test_ca.crt" }, false, zap.NewNop().Sugar())
 	bs, err := ioutil.ReadFile("./testdata/authenticate_local")
         assert.NilError(t, err, "couldn't read testdata authenticate_body_first")
 

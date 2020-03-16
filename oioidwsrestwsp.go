@@ -43,7 +43,7 @@ type OioIdwsRestWsp struct {
 
 func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, logger *zap.SugaredLogger) *OioIdwsRestWsp {
 
-	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true)
+	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true, logger)
 
         return NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
 }
@@ -71,13 +71,13 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
         sslClientCertificate := a.ClientCertHandler(r)
 	if (a.HoK && sslClientCertificate == nil) {
 	   a.Logger.Warn("The client did not provide a certificate")
-       return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
+       	   return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
 	}
 
 	// Get the session id
 	sessionId, err := a.getSessionId(r)
 	if (err != nil) {
-	    a.Logger.Warnf("The client did provide SessionId: %v",err)
+	    	a.Logger.Warnf("The client did provide SessionId: %v",err)
 		return http.StatusUnauthorized, err
 	}
 
@@ -90,7 +90,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 		}
 
 		if (sessionData != nil) {
-            a.Logger.Debug("Session data found")
+            		a.Logger.Debug("Session data not found")
 			// Validate HoK
 			hashFromClientCert := hashFromCertificate(sslClientCertificate)
 			if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
@@ -112,7 +112,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 	a.Logger.Debug("If the request is not authenticated maybe it is a request for authentication?")
 	assertionAsStr, authenticatedAssertion, authErr := a.tokenAuthenticator.Authenticate(sslClientCertificate, r)
 	if (authErr == nil && authenticatedAssertion != nil) {
-        a.Logger.Debug("Client authenticated")
+        	a.Logger.Debug("Client authenticated")
 
 		createdSessionId := uuid.New().String()
 

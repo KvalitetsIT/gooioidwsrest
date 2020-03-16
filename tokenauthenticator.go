@@ -25,6 +25,8 @@ import (
 	dsig "github.com/russellhaering/goxmldsig"
 	dsigtypes "github.com/russellhaering/goxmldsig/types"
 	"github.com/beevik/etree"
+
+	"go.uber.org/zap"
 )
 
 var whiteSpace = regexp.MustCompile("\\s+")
@@ -38,6 +40,8 @@ type TokenAuthenticator struct {
 	validationContext *dsig.ValidationContext
 	samlServiceProvider *saml2.SAMLServiceProvider
 	validateSamlConstraints bool
+
+	logger *zap.SugaredLogger
 }
 
 func (a AuthenticatedAssertion) GetAssertion() (*types.Assertion)  {
@@ -45,7 +49,7 @@ func (a AuthenticatedAssertion) GetAssertion() (*types.Assertion)  {
 	return a.assertion
 }
 
-func NewTokenAuthenticator(audienceRestriction string, certPaths []string, validateSamlConstraints bool) *TokenAuthenticator {
+func NewTokenAuthenticator(audienceRestriction string, certPaths []string, validateSamlConstraints bool, logger *zap.SugaredLogger) *TokenAuthenticator {
 
 	var certs []*x509.Certificate
 	for _, certPath := range certPaths {
@@ -68,13 +72,15 @@ func NewTokenAuthenticator(audienceRestriction string, certPaths []string, valid
 	sp.AudienceURI = audienceRestriction
 	t.samlServiceProvider = sp
 	t.validateSamlConstraints = validateSamlConstraints
+	t.logger = logger
 
 	return t;
 }
 
 func (t TokenAuthenticator) Authenticate(clientCert *x509.Certificate, r *http.Request) (string, *AuthenticatedAssertion, error) {
 	path := r.URL.Path
-	if (path == "/authenticate" || path == "/token") {
+	if (strings.HasSuffix(path, "/authenticate") || strings.HasSuffix(path, "/token")) {
+		t.logger.Debug("WSP received authentication request")
 		body, err := ioutil.ReadAll(r.Body)
 		if (err != nil) {
 			return "", nil, err
@@ -94,6 +100,7 @@ func (t TokenAuthenticator) processAuthenticationRequest(clientCert *x509.Certif
 	// Parse the assertion
 	decodedAssertion, authenticatedAssertion, err := t.ParseAndValidateAuthenticationRequestPayload(assertionStr, clientCert)
 	if (err != nil) {
+		t.logger.Info(fmt.Sprintf("Received body from authentication request did not contain legal assertion (err: %s)", err.Error()))
 		return assertionStr, nil, err
 	}
 
