@@ -23,7 +23,7 @@ import (
 func TestCallWspServerWithoutClientSSLCertifikatFails(t *testing.T) {
 
 	// Given
-	config := createConfig()
+	config := createConfig(true)
 	httpServer, _ := createOioIdwsWsp(config, nil, nil)
 	httpClient := httpServer.Client()
 
@@ -37,7 +37,7 @@ func TestCallWspServerWithoutClientSSLCertifikatFails(t *testing.T) {
 func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *testing.T) {
 
         // Given
-        config := createConfig()
+        config := createConfig(true)
         httpServer, _ := createOioIdwsWsp(config, nil, mockClientCertificate)
 	httpClient := httpServer.Client()
 
@@ -55,7 +55,7 @@ func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *te
   */
 func TestThatHokIsValidatedOnAuthentication(t *testing.T) {
         // Given
-        config := createConfig()
+        config := createConfig(true)
         httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
@@ -78,14 +78,20 @@ func TestThatHokIsValidatedOnAuthentication(t *testing.T) {
   */
 func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testing.T) {
         // Given
-        config := createConfig()
+        config := createConfig(true)
         httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
+
+	noHokConfig := createConfig(false)
+	noHokHttpServer, _/*noHokWsp*/ := createOioIdwsWsp(noHokConfig, createMongoSessionCache(), nil)
+	noHokHttpClient := noHokHttpServer.Client()
+
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
         encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
         serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
+	noHokSessionDataUrl := fmt.Sprintf("%s/getsessiondata", noHokHttpServer.URL)
 
         // When
         authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
@@ -93,16 +99,19 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
 	wsp.ClientCertHandler = mockHijackerCertificate
         serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
         serviceResp, serviceErr := httpClient.Do(serviceRequest)
+	noHokSessiondataResponse, noHokSessionDataErr := noHokHttpClient.Do(createServiceRequest(noHokSessionDataUrl, oioIdwsRestAuth))
 
         // Then
         assert.NilError(t, authErr)
         assert.NilError(t, authParseErr)
         assert.NilError(t, serviceErr)
+	assert.NilError(t, noHokSessionDataErr)
 
         assert.Equal(t, http.StatusOK, authResp.StatusCode)
         assert.Equal(t, "Holder-of-key", oioIdwsRestAuth.TokenType)
         assert.Assert(t, oioIdwsRestAuth.ExpiresIn > 0)
         assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
+	assert.Equal(t, http.StatusOK, noHokSessiondataResponse.StatusCode) 
 
         assert.Equal(t, http.StatusUnauthorized, serviceResp.StatusCode)
 }
@@ -115,7 +124,7 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
 func TestThatAuthenticationFailsIfAudienceDoesNotMatch(t *testing.T) {
 
         // Given
-        config := createConfig()
+        config := createConfig(true)
 	config.AudienceRestriction = "urn:no:match:for:me"
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
@@ -140,7 +149,7 @@ func TestThatAuthenticationFailsIfAudienceDoesNotMatch(t *testing.T) {
 func TestThatAudienceIsNotMatchedIfNotInConfig(t *testing.T) {
 
         // Given
-        config := createConfig()
+        config := createConfig(true)
         config.AudienceRestriction = "" // Means no audience check!!
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
@@ -163,7 +172,7 @@ func TestThatAudienceIsNotMatchedIfNotInConfig(t *testing.T) {
 func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *testing.T) {
 
 	// Given
-        config := createConfig()
+        config := createConfig(true)
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
 	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
@@ -240,13 +249,13 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
   *  UTILITES til testen
   *
   */
-func createConfig() *OioIdwsRestHttpProtocolServerConfig {
+func createConfig(hok bool) *OioIdwsRestHttpProtocolServerConfig {
 
 	c := new(OioIdwsRestHttpProtocolServerConfig)
 	c.TrustCertFiles = []string { "./testgooioidwsrest/sts/sts.cer" }
 	c.Service = new(mockService)
 	c.AudienceRestriction = "urn:kit:testa:servicea"
-	c.HoK = true
+	c.HoK = hok
         return c
 }
 
@@ -291,7 +300,7 @@ func createMongoSessionCache() securityprotocol.SessionCache {
 func createOioIdwsWsp(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, clientCertHandler func(*http.Request) *x509.Certificate) (*httptest.Server, *OioIdwsRestWsp) {
 
 	wsp := NewOioIdwsRestWspFromConfig(config, sessionCache, zap.NewNop().Sugar())
-	if (clientCertHandler != nil) {
+	if (config.HoK && clientCertHandler != nil) {
 		wsp.ClientCertHandler = clientCertHandler
 	}
 
@@ -304,9 +313,17 @@ func createOioIdwsWsp(config *OioIdwsRestHttpProtocolServerConfig, sessionCache 
 		}
 	}
 
-	return createTlsServer(handler), wsp
+	if (config.HoK) {
+		return createTlsServer(handler), wsp
+	} else {
+		return createServer(handler), wsp
+	}
 }
 
+func createServer(handlerFunc func(http.ResponseWriter, *http.Request)) *httptest.Server {
+	s := httptest.NewServer(http.HandlerFunc(handlerFunc))
+	return s
+}
 
 func createTlsServer(handlerFunc func(http.ResponseWriter, *http.Request)) *httptest.Server {
 

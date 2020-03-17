@@ -71,10 +71,13 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 
 
 	// Check that the request is a HTTPS request and that it contains a client certificate
-        sslClientCertificate := a.ClientCertHandler(r)
-	if (a.HoK && sslClientCertificate == nil) {
-	   a.Logger.Warn("The client did not provide a certificate")
-       	   return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
+        var sslClientCertificate *x509.Certificate
+	if (a.HoK) {
+	   sslClientCertificate = a.ClientCertHandler(r)
+	   if (sslClientCertificate == nil) {
+		a.Logger.Warn("The client did not provide a certificate")
+       	   	return http.StatusBadRequest, fmt.Errorf("SSL Client Certificate must be supplied (HoK)")
+	   }
 	}
 
 	// Get the session id
@@ -86,58 +89,64 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 
 	// The request identifies a session, check that the session is valid and get it
 	if (sessionId != "") {
+		a.Logger.Debug(fmt.Sprintf("Sessionid received: %s", sessionId))
 		sessionData, err := a.sessionCache.FindSessionDataForSessionId(sessionId)
 		if (err != nil) {
-		    a.Logger.Warnf("Cannot look up sessiondata: %v",err)
+		    	a.Logger.Warnf("Cannot look up sessiondata: %v",err)
 			return http.StatusInternalServerError, err
 		}
 
 		if (sessionData != nil) {
-            		a.Logger.Debug("Session data not found")
+            		a.Logger.Debug(fmt.Sprintf("Sessiondata for sessionid: %s not found", sessionId))
+
 			// Validate HoK
 			hashFromClientCert := hashFromCertificate(sslClientCertificate)
 			if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
-				return http.StatusUnauthorized, fmt.Errorf("client certificate not HoK")
+				a.Logger.Info(fmt.Sprintf("Client certificate not HoK (sessionid: %s)", sessionId))
+				return http.StatusUnauthorized, fmt.Errorf("Client certificate not HoK")
 			}
 
 			// Check if the user is requesting sessiondata
 			handlerFunc := securityprotocol.IsRequestForSessionData(sessionData, a.sessionCache, w, r)
 			if (handlerFunc != nil) {
+				a.Logger.Debug(fmt.Sprintf("Getting sessiondata (sessionid: %s)", sessionId))
 				return handlerFunc()
 			}
 
 			// The session id ok ... pass-through to next handler
 			a.Logger.Debug("Calling backend service")
-            return service.Handle(w, r)
+            		return service.Handle(w, r)
 		}
 	}
 
 	a.Logger.Debug("If the request is not authenticated maybe it is a request for authentication?")
 	assertionAsStr, authenticatedAssertion, authErr := a.tokenAuthenticator.Authenticate(sslClientCertificate, r)
 	if (authErr == nil && authenticatedAssertion != nil) {
-        	a.Logger.Debug("Client authenticated")
-
 		createdSessionId := uuid.New().String()
+		a.Logger.Debug(fmt.Sprintf("Client authenticated creating session with id: %s", createdSessionId))
 
 		samlSessionDataCreator, err := securityprotocol.NewSamlSessionDataCreatorWithAssertionAndClientCert(createdSessionId, assertionAsStr, authenticatedAssertion.GetAssertion(), hashFromCertificate(sslClientCertificate))
 		if (err != nil) {
+			a.Logger.Warnf(fmt.Sprintf("Error creating sessiondata from assertion and clientcert (err: %s)", err.Error()))
 			return http.StatusInternalServerError, err
 		}
 
 		sessionData, err := samlSessionDataCreator.CreateSessionData()
 		if (err != nil) {
+			a.Logger.Warnf(fmt.Sprintf("Error creating sessiondata (err: %s)", err.Error()))
                         return http.StatusInternalServerError, err
                 }
 
 		err = a.sessionCache.SaveSessionData(sessionData)
 		if (err != nil) {
 		   a.Logger.Warnf("Cannot save sessiondata: %v",err)
-           return http.StatusInternalServerError, err
-        }
+           	   return http.StatusInternalServerError, err
+        	}
 
 		// Succesful authentication
 		resCode, err := ResponseWithSuccessfulAuth(w, sessionData,a.Logger)
 		if (err != nil) {
+			a.Logger.Warnf(fmt.Sprintf("Creating authentication response (err: %s)", err.Error()))
 			return http.StatusUnauthorized, err
 		}
 		return resCode, nil
@@ -175,10 +184,12 @@ func hashFromCertificate(certificate *x509.Certificate) (string) {
 
 func getClientCertificate(req *http.Request) *x509.Certificate {
 
-        if (len(req.TLS.PeerCertificates) > 0) {
-                cert := req.TLS.PeerCertificates[0]
-		return cert
-        }
+	if (req.TLS != nil) {
+	        if (len(req.TLS.PeerCertificates) > 0) {
+        	        cert := req.TLS.PeerCertificates[0]
+			return cert
+        	}
+	}
 	return nil
 }
 
