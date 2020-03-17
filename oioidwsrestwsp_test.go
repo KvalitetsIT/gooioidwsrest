@@ -1,6 +1,7 @@
 package oioidwsrest
 
 import (
+	"io"
 	"fmt"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"io/ioutil"
 	"crypto/x509"
 	"encoding/pem"
@@ -166,6 +168,55 @@ func TestThatAudienceIsNotMatchedIfNotInConfig(t *testing.T) {
         assert.Equal(t, http.StatusOK, authResp.StatusCode)
 }
 
+func TestThatSessionDataIsSentInHeaderIfConfigured(t *testing.T) {
+
+        // Given
+        config := createConfig(true)
+	config.SessiondataHeaderName = "X-Session-Data-123"
+        httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
+        httpClient := httpServer.Client()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
+        authUrl := fmt.Sprintf("%s/token", httpServer.URL)
+        serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
+//	sessionDataUrl := fmt.Sprintf("%s/getsessiondata", httpServer.URL)
+
+        // When
+        authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
+        oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp,zap.NewNop().Sugar())
+        serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
+	serviceRequest.Header.Set(config.SessiondataHeaderName, "A malicious user could add this to the request - this should be removed before proxying to backend")
+        serviceResp, serviceErr := httpClient.Do(serviceRequest)
+//	sessionDataResp, sessionDataErr := httpClient.Do(createServiceRequest(sessionDataUrl, oioIdwsRestAuth))
+
+        // Then
+        assert.NilError(t, authErr)
+        assert.NilError(t, authParseErr)
+        assert.NilError(t, serviceErr)
+//	assert.NilError(t, sessionDataErr)
+
+        assert.Equal(t, http.StatusOK, authResp.StatusCode)
+        assert.Equal(t, "Holder-of-key", oioIdwsRestAuth.TokenType)
+        assert.Assert(t, oioIdwsRestAuth.ExpiresIn > 0)
+        assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
+        assert.Equal(t, http.StatusTeapot, serviceResp.StatusCode)
+
+	serviceResponseBody, errReadRequest := ioutil.ReadAll(serviceResp.Body)
+	assert.NilError(t, errReadRequest)
+	serviceResponseBodyStr := string(serviceResponseBody)
+
+	headers := getHeaders(serviceResponseBodyStr, config.SessiondataHeaderName)
+	assert.Assert(t, len(headers) == 1, "Expected to find only one header")
+	headerValue := headers[0]
+	_, err := base64.StdEncoding.DecodeString(headerValue)
+	assert.NilError(t, err)
+//	getSessionDataBody, err := ioutil.ReadAll(sessionDataResp.Body)
+//	assert.NilError(t, err)
+//	getSessionDataBodyStr := string(getSessionDataBody)
+//	assert.Equal(t, decodedHeaderValue, getSessionDataBodyStr, "Expected the header value to match that value that is available at the getsessiondataurl")
+}
+
 /**
   * Sunshine scenario in which the authentication is successful and service calls are possible
   */
@@ -262,7 +313,17 @@ func createConfig(hok bool) *OioIdwsRestHttpProtocolServerConfig {
 type mockService struct {
 }
 
-func (m mockService) Handle(http.ResponseWriter, *http.Request) (int, error) {
+func (m mockService) Handle(responseWriter http.ResponseWriter, req *http.Request) (int, error) {
+
+	dump, err := httputil.DumpRequest(req, true)
+	if (err != nil) {
+		panic(err)
+	}
+
+	requestDump := fmt.Sprintf("%q", dump)
+
+	responseWriter.WriteHeader(http.StatusTeapot)
+	io.WriteString(responseWriter, requestDump)
 
 	return http.StatusTeapot, nil
 }
@@ -331,3 +392,29 @@ func createTlsServer(handlerFunc func(http.ResponseWriter, *http.Request)) *http
 	return ts
 }
 
+func getHeaders(input string, headername string) []string {
+
+	value, rest := splitOnHeader(input, headername)
+	fmt.Println(fmt.Sprintf("found: %s", value))
+	if (value == "") {
+		return []string{}
+	}
+	theOtherValues := getHeaders(rest, headername)
+	return append(theOtherValues, value)
+}
+
+func splitOnHeader(input string, headername string) (string, string) {
+
+	matchHeader := fmt.Sprintf("%s: ", headername)
+	headerStartIdx := strings.Index(input, matchHeader)
+	if (headerStartIdx < 0) {
+		return "", input
+	}
+	afterHeader := input[headerStartIdx+len(matchHeader):len(input)]
+	headerEndIdx := strings.Index(afterHeader, "\\r\\n")
+
+	value := afterHeader[:headerEndIdx]
+	theRest := afterHeader[headerEndIdx:]
+
+	return value, theRest
+}

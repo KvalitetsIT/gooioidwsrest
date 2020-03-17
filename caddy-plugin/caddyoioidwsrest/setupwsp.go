@@ -30,6 +30,8 @@ type CaddyOioIdwsRestWsp struct {
 
 	HoK string `json:"hok,omitempty"`
 
+	SessiondataHeaderName string `json:"sessiondata_headername,omitempty"`
+
 	ProviderProtocol *oioidwsrest.OioIdwsRestWsp
 
 	Logger *zap.SugaredLogger
@@ -85,7 +87,7 @@ func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
 		return err
 	}
 
-	// Maps to wsc config
+	// Maps to wsp config
         wspConfig := new(oioidwsrest.OioIdwsRestHttpProtocolServerConfig)
         wspConfig.TrustCertFiles = m.TrustCertFiles
         wspConfig.AudienceRestriction = m.AudienceRestriction
@@ -94,6 +96,10 @@ func (m *CaddyOioIdwsRestWsp) Provision(ctx caddy.Context) error {
 		wspConfig.HoK, _ = strconv.ParseBool(m.HoK)
 	} else {
 		wspConfig.HoK = true
+	}
+
+	if (len(m.SessiondataHeaderName) > 0) {
+		wspConfig.SessiondataHeaderName = m.SessiondataHeaderName
 	}
 
 	m.ProviderProtocol = oioidwsrest.NewOioIdwsRestWspFromConfig(wspConfig, sessionCache, m.Logger)

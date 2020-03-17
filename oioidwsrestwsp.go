@@ -2,6 +2,8 @@ package oioidwsrest
 
 import (
 	"fmt"
+	"encoding/json"
+	"encoding/base64"
 	"crypto/x509"
 	"net/http"
 	"crypto/sha1"
@@ -24,6 +26,8 @@ type OioIdwsRestHttpProtocolServerConfig struct {
 	Service                 securityprotocol.HttpHandler
 
 	HoK			bool
+
+	SessiondataHeaderName	string
 }
 
 type OioIdwsRestWsp struct {
@@ -38,6 +42,8 @@ type OioIdwsRestWsp struct {
 
 	HoK			bool
 
+	SessiondataHeaderName   string
+
 	ClientCertHandler	func(req *http.Request) *x509.Certificate
 
 	Logger *zap.SugaredLogger
@@ -48,6 +54,7 @@ func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, se
 	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true, logger)
         wsp := NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
 	wsp.HoK = config.HoK
+	wsp.SessiondataHeaderName = config.SessiondataHeaderName
 	return wsp
 }
 
@@ -113,7 +120,15 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 				return handlerFunc()
 			}
 
-			// The session id ok ... pass-through to next handler
+			// The session id ok ... pass-through to next handler ... appending sessiondata in header if configured
+			if (len(a.SessiondataHeaderName) > 0) {
+				sessionDataValue, err := getSessionDataValue(sessionData)
+				if (err != nil) {
+					a.Logger.Error(fmt.Sprintf("Error '%s' creating sessiondatavalue for header (sesssionid: %s)", err.Error(), sessionId))
+					return http.StatusInternalServerError, err
+				}
+				r.Header.Set(a.SessiondataHeaderName, sessionDataValue)
+			}
 			a.Logger.Debug("Calling backend service")
             		return service.Handle(w, r)
 		}
@@ -160,6 +175,16 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
         return http.StatusUnauthorized, authErr
 }
 
+func getSessionDataValue(sessionData *securityprotocol.SessionData) (string, error) {
+	sessionDataBytes, marshalErr := json.Marshal(sessionData)
+        if (marshalErr != nil) {
+                return "", marshalErr
+        }
+	encodedData := base64.StdEncoding.EncodeToString(sessionDataBytes)
+	return encodedData, nil
+
+}
+
 func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string, error) {
 	sessionId := r.Header.Get(HEADER_AUTHORIZATION)
 	if (sessionId  != "") {
@@ -168,6 +193,8 @@ func (a OioIdwsRestWsp) getSessionId(r *http.Request) (string, error) {
 			return sessionIdParts[1], nil
 		}
 		return "", fmt.Errorf(fmt.Sprintf("%s header contains illegal value: %s", HEADER_AUTHORIZATION, sessionId))
+	} else {
+		a.Logger.Debug(fmt.Sprintf("Sessionid not found - looking for header: %s", HEADER_AUTHORIZATION))
 	}
 	return "", nil
 }
