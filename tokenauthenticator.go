@@ -111,10 +111,16 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 
 	auth := AuthenticatedAssertion{}
 
+	clientCertIdentification := "<no client cert>"
+	if (clientCert != nil) {
+		// Extract cert info for logging purposes
+		clientCertIdentification = clientCert.Subject.CommonName
+	}
+
         // Base64 decode
         decoded, err := base64.StdEncoding.DecodeString(body)
 	if (err != nil) {
-		t.logger.Debug(fmt.Sprintf("Error decoding authentication request body: %s (error: %s)", body, err.Error()))
+		t.logger.Debug(fmt.Sprintf("Error decoding authentication request body (request body: %s) (client certificate subject commonname: %s) (error: %s)", body, clientCertIdentification, err.Error()))
 		return "", nil, err
 	}
 
@@ -122,12 +128,12 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 	doc := etree.NewDocument()
 	err = doc.ReadFromBytes(decoded)
 	if (err != nil) {
-		t.logger.Debug(fmt.Sprintf("Error parsing XML from authentication request body: %s (error: %s)", decoded, err.Error()))
+		t.logger.Debug(fmt.Sprintf("Error parsing XML from authentication request (decoded payload: %s) (client certificate subject commonname: %s) (error: %s)", decoded, clientCertIdentification, err.Error()))
 		return "", nil, err
 	}
 	_, err = t.validationContext.Validate(doc.Root())
     	if (err != nil) {
-		t.logger.Debug(fmt.Sprintf("Error validating authentication request body: %s (error: %s)", decoded, err.Error()))
+		t.logger.Debug(fmt.Sprintf("Error validating authentication request (decoded payload: %s) (client certificate subject commonname: %s) (error: %s)", decoded, clientCertIdentification, err.Error()))
 		return "", nil, err
     	}
 
@@ -145,16 +151,16 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 
 		warningInfo, err := t.samlServiceProvider.VerifyAssertionConditions(assertion)
 		if (err != nil) {
-			t.logger.Debug(fmt.Sprintf("Error verifying conditions authentication request body: %s (error: %s)", decoded, err.Error()))
+			t.logger.Debug(fmt.Sprintf("Error verifying conditions authentication request (decoded payload: %s) (client certificate subject commonname: %s) (error: %s)", decoded, clientCertIdentification, err.Error()))
 			return "", nil, err
 		}
 		if (warningInfo != nil && warningInfo.InvalidTime) {
-			t.logger.Debug(fmt.Sprintf("Error verifying time constraints authentication request body: %s", decoded))
+			t.logger.Debug(fmt.Sprintf("Error verifying time constraints authentication request (decoded payload: %s) (client certificate subject commonname: %s)", decoded, clientCertIdentification))
 			return "", nil, fmt.Errorf("SAML Assertion was not valid due to invalid time")
 		}
 
 		if ((len(t.samlServiceProvider.AudienceURI) > 0) && warningInfo != nil && warningInfo.NotInAudience) {
-			t.logger.Debug(fmt.Sprintf("Error verifying audience authentication request body: %s", decoded))
+			t.logger.Debug(fmt.Sprintf("Error verifying audience authentication request (decoded payload: %s) (client certificate subject commonname: %s)", decoded, clientCertIdentification))
 			return "", nil, fmt.Errorf("SAML Assertion was not valid due to audience restriction")
 		}
 	}

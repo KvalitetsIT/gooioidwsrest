@@ -40,11 +40,7 @@ pipeline {
 				}
 			}
 		}
-        stage('Build kit/git image') {
-            steps {
-               sh 'docker build -t kit/git -f Dockerfile-github . --build-arg SSH_PRIVATE_KEY="`cat /config/id_rsa`"'
-            }
-        }
+
 		stage('Build Docker image (oioidwsrest module)') {
 			steps {
 				script {
