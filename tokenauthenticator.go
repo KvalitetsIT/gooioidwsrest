@@ -80,8 +80,8 @@ func NewTokenAuthenticator(audienceRestriction string, certPaths []string, valid
 func (t TokenAuthenticator) Authenticate(clientCert *x509.Certificate, r *http.Request) (string, *AuthenticatedAssertion, error) {
 	path := r.URL.Path
 	if (strings.HasSuffix(path, "/authenticate") || strings.HasSuffix(path, "/token")) {
-		t.logger.Debug("WSP received authentication request")
 		body, err := ioutil.ReadAll(r.Body)
+		t.logger.Debug("WSP received authentication request")
 		if (err != nil) {
 			return "", nil, err
 		}
@@ -113,15 +113,21 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 
         // Base64 decode
         decoded, err := base64.StdEncoding.DecodeString(body)
+	if (err != nil) {
+		t.logger.Debug(fmt.Sprintf("Error decoding authentication request body: %s (error: %s)", body, err.Error()))
+		return "", nil, err
+	}
 
 	// Validate signature of the issuer of the Assertion
 	doc := etree.NewDocument()
 	err = doc.ReadFromBytes(decoded)
 	if (err != nil) {
+		t.logger.Debug(fmt.Sprintf("Error parsing XML from authentication request body: %s (error: %s)", decoded, err.Error()))
 		return "", nil, err
 	}
 	_, err = t.validationContext.Validate(doc.Root())
     	if (err != nil) {
+		t.logger.Debug(fmt.Sprintf("Error validating authentication request body: %s (error: %s)", decoded, err.Error()))
 		return "", nil, err
     	}
 
@@ -139,13 +145,16 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 
 		warningInfo, err := t.samlServiceProvider.VerifyAssertionConditions(assertion)
 		if (err != nil) {
+			t.logger.Debug(fmt.Sprintf("Error verifying conditions authentication request body: %s (error: %s)", decoded, err.Error()))
 			return "", nil, err
 		}
 		if (warningInfo != nil && warningInfo.InvalidTime) {
+			t.logger.Debug(fmt.Sprintf("Error verifying time constraints authentication request body: %s", decoded))
 			return "", nil, fmt.Errorf("SAML Assertion was not valid due to invalid time")
 		}
 
 		if ((len(t.samlServiceProvider.AudienceURI) > 0) && warningInfo != nil && warningInfo.NotInAudience) {
+			t.logger.Debug(fmt.Sprintf("Error verifying audience authentication request body: %s", decoded))
 			return "", nil, fmt.Errorf("SAML Assertion was not valid due to audience restriction")
 		}
 	}
