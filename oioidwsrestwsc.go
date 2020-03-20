@@ -183,10 +183,10 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 
 		// Get sessiondata matching the session
 		if client.sessionDataFetcher != nil {
-			client.Logger.Debug("Fetching sessiondata")
+			client.Logger.Debugf("Fetching sessiondata using sessionId: %s", sessionId)
 			sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
 			if err != nil {
-				client.Logger.Warnf("Error fetching sessiondata: %v", err)
+				client.Logger.Infof("Error fetching sessiondata: %v", err)
 				return http.StatusInternalServerError, err
 			}
 		} else {
@@ -205,7 +205,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		client.Logger.Debug("No token, no session, or sessiondata has changed since issueing - run authentication")
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if err != nil {
-			client.Logger.Warnf("Error getting token: %v", err)
+			client.Logger.Infof("Error getting token: %s", err.Error())
 			return http.StatusUnauthorized, err
 		}
 		hash := "DefaultHash"
@@ -217,8 +217,8 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 			client.Logger.Debugf("Saving token for session: %v => %v", sessionId, authentication.Token)
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
 			if err != nil {
-				client.Logger.Warnf("Cannot save sessiondata: %v", err)
-				return http.StatusUnauthorized, err
+				client.Logger.Infof("Cannot save sessiondata: %s", err.Error())
+				return http.StatusInternalServerError, err
 			}
 		} else {
 			tokenData = &securityprotocol.TokenData{Authenticationtoken: authentication.Token}
@@ -227,26 +227,26 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 
 	// Add the authentication token to the request
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
-	client.Logger.Debug("Authentication token added to client")
 	// Let the service do its work
-	client.Logger.Debug("Calling Service")
+	client.Logger.Debug("Authentication token added to request - Calling Service")
 	return service.Handle(w, r)
 }
 
-func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(decodedToken []byte, claims map[string]string) (string, error) {
+func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(sessionId string, decodedToken []byte, claims map[string]string) (string, error) {
 
 	// Get SAML assertion from STS
 	var response *stsclient.StsResponse
 	var err error
 
 	if len(decodedToken) > 0 {
-		client.Logger.Debugf("Get token acting as: %v", decodedToken)
+		client.Logger.Debugf("Get token (acting as: %s) from STS", string(decodedToken))
 		response, err = client.stsClient.ActAs(client.serviceAudience, decodedToken, claims)
 	} else {
 		client.Logger.Debugf("Get token from STS")
 		response, err = client.stsClient.GetToken(client.serviceAudience, claims)
 	}
-	if err != nil {
+	if (err != nil) {
+		client.Logger.Infof("Error getting token from STS (sessionid: %s) (error: )", sessionId, err.Error())
 		return "", err
 	}
 	encodedToken := base64.StdEncoding.EncodeToString([]byte(response.ToString()))
@@ -265,21 +265,23 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 
 	decodedToken := []byte{}
 	var err error
+	sessionId := "(no sessiondata as input)"
 	if sessionData != nil && len(sessionData.Authenticationtoken) > 0 {
 		client.Logger.Debugf("Session data found: %v", sessionData)
 		// Decode it - it's base64 encoded
 		decodedToken, err = base64.StdEncoding.DecodeString(sessionData.Authenticationtoken)
-		client.Logger.Debugf("Decoded token %v=>%v", sessionData.Authenticationtoken, decodedToken)
+		client.Logger.Debugf("Decoded token %v=>%s", sessionData.Authenticationtoken, string(decodedToken))
 		if err != nil {
 			client.Logger.Warnf("Error decoding token: %v", sessionData.Authenticationtoken)
 			return nil, err
 		}
+		sessionId = sessionData.Sessionid
 	}
 
-	client.Logger.Debugf("Get SAML assertion from STS using decodedToken: %v", decodedToken)
-	encodedToken, err := client.GetEncodedTokenFromSts(decodedToken, claims)
+	client.Logger.Debugf("Get SAML assertion from STS using decodedToken: %s", string(decodedToken))
+	encodedToken, err := client.GetEncodedTokenFromSts(sessionId, decodedToken, claims)
 	if err != nil {
-		client.Logger.Debugf("Cannot get token from STS: %v", err)
+		client.Logger.Infof("Cannot get token from STS: %s", err.Error)
 		return nil, err
 	}
 	client.Logger.Debugf("Got token from STS: %v", encodedToken)
@@ -289,7 +291,7 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	client.Logger.Debug("Getting token from service: %v", url)
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if err != nil {
-		client.Logger.Warnf("Error getting token from %s: %v", url, err)
+		client.Logger.Infof("Error getting token from %s: %s", url, err.Error())
 		return nil, err
 	}
 	client.Logger.Debug("Got token from service")

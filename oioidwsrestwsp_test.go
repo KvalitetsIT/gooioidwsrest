@@ -61,7 +61,7 @@ func TestThatHokIsValidatedOnAuthentication(t *testing.T) {
         httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
 
@@ -89,7 +89,7 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
 	noHokHttpClient := noHokHttpServer.Client()
 
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
         serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
@@ -131,7 +131,7 @@ func TestThatAuthenticationFailsIfAudienceDoesNotMatch(t *testing.T) {
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        encodedToken, _ := wsc.GetEncodedTokenFromSts("id used for logging logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
 
@@ -156,7 +156,7 @@ func TestThatAudienceIsNotMatchedIfNotInConfig(t *testing.T) {
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
 
@@ -176,7 +176,7 @@ func TestThatSessionDataIsSentInHeaderIfConfigured(t *testing.T) {
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
         wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-        encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+        encodedToken, _ := wsc.GetEncodedTokenFromSts("this id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
         serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
@@ -227,7 +227,7 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
 	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
-	encodedToken, _ := wsc.GetEncodedTokenFromSts([]byte{}, nil)
+	encodedToken, _ := wsc.GetEncodedTokenFromSts("id used for logging purposes :-)", []byte{}, nil)
 	time.Sleep(2000) // Just to check that the timestamps are set correctly in the session
 	authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
 	authUrl := fmt.Sprintf("%s/token", httpServer.URL)
