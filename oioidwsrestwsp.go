@@ -90,7 +90,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 	// Get the session id
 	sessionId, err := a.getSessionId(r)
 	if (err != nil) {
-	    	a.Logger.Warnf("The client did provide SessionId: %v",err)
+	    	a.Logger.Warnf("The client did provide SessionId: %s", err.Error())
 		return http.StatusUnauthorized, err
 	}
 
@@ -99,7 +99,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 		a.Logger.Debug(fmt.Sprintf("Sessionid received: %s", sessionId))
 		sessionData, err := a.sessionCache.FindSessionDataForSessionId(sessionId)
 		if (err != nil) {
-		    	a.Logger.Warnf("Cannot look up sessiondata: %v",err)
+		    	a.Logger.Warnf("Cannot look up sessiondata: %s", err.Error())
 			return http.StatusInternalServerError, err
 		}
 
@@ -129,7 +129,6 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
 				}
 				r.Header.Set(a.SessiondataHeaderName, sessionDataValue)
 			}
-			a.Logger.Debug("Calling backend service")
             		return service.Handle(w, r)
 		}
 	}
@@ -159,7 +158,7 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
         	}
 
 		// Succesful authentication
-		resCode, err := ResponseWithSuccessfulAuth(w, sessionData,a.Logger)
+		resCode, err := ResponseWithSuccessfulAuth(w, sessionData, a.Logger)
 		if (err != nil) {
 			a.Logger.Warnf(fmt.Sprintf("Creating authentication response (err: %s)", err.Error()))
 			return http.StatusUnauthorized, err

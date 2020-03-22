@@ -56,7 +56,7 @@ func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprot
 	authResponsePayload := OioIdwsRestAuthResponse {
 		AccessToken: sessionData.Sessionid,
 		TokenType: calculateTokenType(sessionData),
-		ExpiresIn: getExpiresInFromExpiryTimeStamp(sessionData.Timestamp),
+		ExpiresIn: getExpiresInFromExpiryTimeStamp(sessionData.Timestamp, logger),
 	}
 
 	// Serialize the authentication payload and write it to the response
@@ -72,14 +72,17 @@ func ResponseWithSuccessfulAuth(w http.ResponseWriter, sessionData *securityprot
 	return http.StatusOK, nil
 }
 
-func getExpiresInFromExpiryTimeStamp(timestamp time.Time) int64 {
+func getExpiresInFromExpiryTimeStamp(timestamp time.Time, logger *zap.SugaredLogger) int64 {
+	now := time.Now()
+	diff := timestamp.Sub(now).Seconds()
+	logger.Debugf("Calculated expiry:%d (now: %s timestamp: %s)", diff, now.Format(time.RFC3339), timestamp.Format(time.RFC3339))
 
-	return	int64(timestamp.Sub(time.Now()).Seconds())
+	return int64(diff)
 }
 
 func calculateTokenType(sessionData *securityprotocol.SessionData) string {
 	if (sessionData.ClientCertHash == "") {
 		return OIO_IDWS_REST_TOKEN_TYPE_BEARER
-	} 
+	}
 	return OIO_IDWS_REST_TOKEN_TYPE_HOLDER_OF_KEY
 }
