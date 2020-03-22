@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 
+	"time"
 	"io/ioutil"
 
 	securityprotocol "github.com/KvalitetsIT/gosecurityprotocol"
@@ -212,7 +213,8 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 
 		if sessionId != "" {
 			client.Logger.Debugf("Saving token for sessionid: %s expires: %s", sessionId, authentication.ExpiresIn)
-			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionId(sessionId, authentication.Token, authentication.ExpiresIn, hash)
+			expiryDate := GetExpiryDate(authentication.ExpiresIn)
+			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionIdWithExpiry(sessionId, authentication.Token, expiryDate, hash)
 			if err != nil {
 				client.Logger.Infof("Cannot save sessiondata: %s", err.Error())
 				return http.StatusInternalServerError, err
@@ -288,6 +290,21 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 	return CreateAuthenticatonRequestInfoFromReponse(authResponse, client.Logger)
 }
+
+func GetExpiryDate(expiresInSeconds int64) time.Time {
+
+	expiresInTimeLimit := (expiresInSeconds * 90) / 100
+	expiresInMinus5Minutes := expiresInSeconds - (5 * 60)
+
+	expires := expiresInTimeLimit
+	if (expires < expiresInMinus5Minutes) {
+		expires = expiresInMinus5Minutes
+	}
+
+        expiryTime := time.Now().Add(time.Duration(expires) * time.Second)
+        return expiryTime
+}
+
 
 func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
 	r.Header.Add("Authorization", tokenData.Authenticationtoken)
