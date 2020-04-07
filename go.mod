@@ -1,4 +1,4 @@
-module oioidwsrest
+module github.com/KvalitetsIT/gooioidwsrest
 
 go 1.13
 
