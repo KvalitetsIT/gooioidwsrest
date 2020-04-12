@@ -161,9 +161,19 @@ func (client OioIdwsRestHttpProtocolClient) Handle(w http.ResponseWriter, r *htt
 
 func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
+	returnCode, err, _ := client.HandleServiceWithCallback(w, r, service)
+	return returnCode, err
+
+}
+
+func (client OioIdwsRestHttpProtocolClient) HandleServiceWithCallback(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error, *func()) {
+
+
+	var callBack *func() = nil
 	if client.matchHandler != nil && !client.matchHandler(r) {
 		client.Logger.Debug("No match just delegate")
-		return client.service.Handle(w, r)
+		returnCode, err := client.service.Handle(w, r)
+		return returnCode, err, nil
 	}
 
 	sessionId := client.sessionIdHandler.GetSessionIdFromHttpRequest(r)
@@ -176,7 +186,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		tokenData, err = client.tokenCache.FindTokenDataForSessionId(sessionId)
 		if err != nil {
 			client.Logger.Warnf("Error (error: %s) finding token for sessionId: %s", err.Error(), sessionId)
-			return http.StatusInternalServerError, err
+			return http.StatusInternalServerError, err, nil
 		}
 
 		// Get sessiondata matching the session
@@ -185,8 +195,14 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 			sessionData, err = client.sessionDataFetcher.GetSessionData(sessionId, client.sessionIdHandler)
 			if err != nil {
 				client.Logger.Infof("Error fetching sessiondata: %s", err.Error())
-				return http.StatusInternalServerError, err
+				return http.StatusInternalServerError, err, nil
 			}
+			// We are reusing a previous session make sure that callback is set
+			invalidateSessionFunc := func() {
+				// Invalidate stored session to trigger creation of new one on next request
+				client.tokenCache.DeleteTokenDataWithId(sessionData.ID)
+			}
+			callBack = &invalidateSessionFunc
 		} else {
 			client.Logger.Debug("No sessionDataFetcher provided")
 		}
@@ -195,7 +211,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 	sessionData, err := AddExtraClaimsToSessionData(sessionId, sessionData, r)
 	if err != nil {
 		client.Logger.Warnf("Error adding extra claims to sessiondata: %s", err.Error())
-		return http.StatusInternalServerError, err
+		return http.StatusInternalServerError, err, nil
 	}
 
 	if tokenData == nil || (sessionData != nil && (tokenData == nil || tokenData.Hash != sessionData.Hash)) || sessionId == "" {
@@ -204,7 +220,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 		authentication, err := client.doClientAuthentication(w, r, sessionData)
 		if err != nil {
 			client.Logger.Infof("Error getting token: %s", err.Error())
-			return http.StatusUnauthorized, err
+			return http.StatusUnauthorized, err, nil
 		}
 		hash := "DefaultHash"
 		if sessionData != nil {
@@ -217,7 +233,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 			tokenData, err = client.tokenCache.SaveAuthenticationKeysForSessionIdWithExpiry(sessionId, authentication.Token, expiryDate, hash)
 			if err != nil {
 				client.Logger.Infof("Cannot save sessiondata: %s", err.Error())
-				return http.StatusInternalServerError, err
+				return http.StatusInternalServerError, err, nil
 			}
 		} else {
 			tokenData = &securityprotocol.TokenData{Authenticationtoken: authentication.Token}
@@ -227,7 +243,8 @@ func (client OioIdwsRestHttpProtocolClient) HandleService(w http.ResponseWriter,
 	// Add the authentication token to the request
 	client.doDecorateRequestWithAuthenticationToken(tokenData, r)
 	// Let the service do its work
-	return service.Handle(w, r)
+	returnCode, err :=  service.Handle(w, r)
+	return returnCode, err, callBack
 }
 
 func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(sessionId string, decodedToken []byte, claims map[string]string) (string, error) {

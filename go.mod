@@ -1,11 +1,11 @@
 module github.com/KvalitetsIT/gooioidwsrest
 
-go 1.13
+go 1.14
 
 replace github.com/russellhaering/goxmldsig => github.com/evtr/goxmldsig v0.0.0-20190907195011-53d9398322c5
 
 require (
-	github.com/KvalitetsIT/gosecurityprotocol v0.0.0-20200322203815-28d26ac5d271
+	github.com/KvalitetsIT/gosecurityprotocol v0.0.0-20200412142609-cde0857b28f4
 	github.com/KvalitetsIT/gostsclient v0.0.0-20190916204615-bbb628cf6e00
 	github.com/beevik/etree v1.1.0
 	github.com/google/go-cmp v0.4.0

@@ -13,6 +13,6 @@ services:
      networks:
        - gooioidwsrest
    mongo:
-     image: mongo:3.3
+     image: mongo:3.7
      networks:
        - gooioidwsrest

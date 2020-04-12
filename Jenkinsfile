@@ -48,66 +48,6 @@ pipeline {
 				}
 			}
 		}
-                stage('Build Docker image (caddy module)') {
-                        steps {
-                                script {
-                                        docker.build("kvalitetsit/gooioidwsrest", "-f Dockerfile-caddy .")
-                                }
-                        }
-                }
-                stage('Build Docker image (caddy templates)') {
-                        steps {
-                                script {
-                                        docker.build("kvalitetsit/gooioidwsrest-templates", "-f Dockerfile-caddytemplates .")
-                                }
-                        }
-                }
-                stage('Build Docker resouce images for caddy modules (wsp and wsc)') {
-                        steps {
-                                script {
-                                        docker.build("build-gooioidwsrestresources/caddy", "-f ./testgooioidwsrest/Dockerfile-resources-caddytest --no-cache ./testgooioidwsrest")
-                                }
-                        }
-                }
-                stage('Run integration tests for caddy module') {
-                        steps {
-                                dir('testgooioidwsrest') {
-                                        sh 'docker-compose -f docker-compose-caddy.yml up -d'
-                                }
-                        }
-                }
-		stage('Tag Docker image and push to registry') {
-			steps {
-				script {
-        				image = docker.image("kvalitetsit/gooioidwsrest")
-                                        image.push("dev")
-
-                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
-                                        {
-                                                echo "Tagging version."
-                                                image.push(env.TAG_NAME.substring(1))
-                                                image.push("latest")
-                                        }
-
-				}
-			}
-		}
-
-                stage('Tag Docker image for templates and push to registry') {
-                        steps {
-                                script {
-                                        image = docker.image("kvalitetsit/gooioidwsrest-templates")
-                                        image.push("dev")
-
-                                        if (env.TAG_NAME != null && env.TAG_NAME.startsWith("v"))
-                                        {
-                                                echo "Tagging version."
-                                                image.push(env.TAG_NAME.substring(1))
-                                                image.push("latest")
-                                        }
-                                }
-                        }
-                }
 	}
 	post {
 		always {
