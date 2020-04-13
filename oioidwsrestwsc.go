@@ -199,6 +199,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleServiceWithCallback(w http.Res
 			}
 			// We are reusing a previous session make sure that callback is set
 			invalidateSessionFunc := func() {
+				client.Logger.Debugf("Deleting tokendata with id %s", sessionData.ID)
 				// Invalidate stored session to trigger creation of new one on next request
 				client.tokenCache.DeleteTokenDataWithId(sessionData.ID)
 			}
