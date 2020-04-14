@@ -197,13 +197,6 @@ func (client OioIdwsRestHttpProtocolClient) HandleServiceWithCallback(w http.Res
 				client.Logger.Infof("Error fetching sessiondata: %s", err.Error())
 				return http.StatusInternalServerError, err, nil
 			}
-			// We are reusing a previous session make sure that callback is set
-			invalidateSessionFunc := func() {
-				client.Logger.Debugf("Deleting tokendata with id %s", sessionData.ID)
-				// Invalidate stored session to trigger creation of new one on next request
-				client.tokenCache.DeleteTokenDataWithId(sessionData.ID)
-			}
-			callBack = &invalidateSessionFunc
 		} else {
 			client.Logger.Debug("No sessionDataFetcher provided")
 		}
@@ -239,6 +232,14 @@ func (client OioIdwsRestHttpProtocolClient) HandleServiceWithCallback(w http.Res
 		} else {
 			tokenData = &securityprotocol.TokenData{Authenticationtoken: authentication.Token}
 		}
+	} else {
+                // We are reusing a previous session make sure that callback is set so that the tokendata kan be deleted if it turns out to be invalid
+		invalidateSessionFunc := func() {
+                	client.Logger.Debugf("Deleting tokendata with id %s", tokenData.ID)
+                        // Invalidate stored session to trigger creation of new one on next request
+                        client.tokenCache.DeleteTokenDataWithId(tokenData.ID)
+		}
+		callBack = &invalidateSessionFunc
 	}
 
 	// Add the authentication token to the request
