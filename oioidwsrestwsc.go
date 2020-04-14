@@ -326,6 +326,6 @@ func GetExpiryDate(expiresInSeconds int64) time.Time {
 
 
 func (client OioIdwsRestHttpProtocolClient) doDecorateRequestWithAuthenticationToken(tokenData *securityprotocol.TokenData, r *http.Request) error {
-	r.Header.Add("Authorization", tokenData.Authenticationtoken)
+	r.Header.Set("Authorization", tokenData.Authenticationtoken)
 	return nil
 }
