@@ -25,7 +25,6 @@ pipeline {
                                 dir('testgooioidwsrest') {
 					sh 'docker-compose -f docker-compose-db.yml rm -f'
                                         sh 'docker-compose rm -f'
-					sh 'docker-compose -f docker-compose-caddy.yml rm -f'
                                 }
                         }
 		}
@@ -54,7 +53,6 @@ pipeline {
 
 			dir('testgooioidwsrest') {
 				sh 'docker-compose -f docker-compose-db.yml stop'
-                                sh 'docker-compose -f docker-compose-caddy.yml stop'
                                 sh 'docker-compose stop'
 			}
 		}
