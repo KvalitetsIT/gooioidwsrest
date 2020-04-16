@@ -237,7 +237,7 @@ func (client OioIdwsRestHttpProtocolClient) HandleServiceWithCallback(w http.Res
 		invalidateSessionFunc := func() {
                 	client.Logger.Debugf("Deleting tokendata with id %s", tokenData.ID)
                         // Invalidate stored session to trigger creation of new one on next request
-                        client.tokenCache.DeleteTokenDataWithId(tokenData.ID)
+                        client.tokenCache.DeleteTokenDataWithId(*tokenData.ID)
 		}
 		callBack = &invalidateSessionFunc
 	}
