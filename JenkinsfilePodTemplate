@@ -3,6 +3,7 @@ podTemplate(
    volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')],
 ) {
    node(POD_LABEL) {
+     try {
 		stage('Clone repository') {
 				checkout scm
 		}
@@ -39,10 +40,8 @@ podTemplate(
 					docker.build("kvalitetsit/gooioidwsrest-module", "--network testgooioidwsrest_gooioidwsrest -f Dockerfile .")
 			}
 		}
-	}
-	post {
-		always {
-            container('docker') {
+ 	} finally {
+	        container('docker') {
 			dir('testgooioidwsrest') {
 				sh 'docker-compose -f docker-compose-db.yml stop'
                                 sh 'docker-compose stop'
