@@ -4,9 +4,7 @@ podTemplate(
 ) {
    node(POD_LABEL) {
 		stage('Clone repository') {
-			steps {
 				checkout scm
-			}
 		}
 
                 stage('Build Docker resouce images with to be used during build') {
