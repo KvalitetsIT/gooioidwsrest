@@ -1,6 +1,7 @@
 podTemplate(
         containers: [containerTemplate(image: 'kvalitetsit/docker-compose:dev', name: 'docker', command: 'cat', ttyEnabled: true)],
         volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')],
+        hostNetwork: true,
 ) {
     node(POD_LABEL) {
         properties([disableConcurrentBuilds()])
