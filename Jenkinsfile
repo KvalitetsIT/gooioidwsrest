@@ -3,6 +3,7 @@ podTemplate(
         volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')],
 ) {
     node(POD_LABEL) {
+        properties([disableConcurrentBuilds()])
         try {
             stage('Clone repository') {
                 checkout scm
