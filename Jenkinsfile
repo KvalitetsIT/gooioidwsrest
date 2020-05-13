@@ -45,9 +45,11 @@ podTemplate(
             }
         } finally {
             container('docker') {
-                dir('testgooioidwsrest') {
-                    sh 'docker-compose -f docker-compose-db.yml stop'
-                    sh 'docker-compose stop'
+                stage('Clean up') {
+                    dir('testgooioidwsrest') {
+                        sh 'docker-compose -f docker-compose-db.yml stop'
+                        sh 'docker-compose stop'
+                    }
                 }
             }
         }
