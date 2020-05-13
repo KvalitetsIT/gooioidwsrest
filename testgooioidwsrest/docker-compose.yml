@@ -16,7 +16,7 @@ services:
        dockerfile: Dockerfile-resources-servicea
 # Sts
    sts:
-     image: kitdocker.kvalitetsit.dk/kvalitetsit/sts-frontend:543492665993a4323f1d4fc94d266278d58764fb
+     image: kvalitetsit/sts:f8a4556c466e031bb4d4e755af29110dc91adbfd
      environment:
        - SERVER_NAME=sts
        - STS_HOST=sts-backend
@@ -25,7 +25,7 @@ services:
      networks:
        - gooioidwsrest
    sts-backend:
-     image: kitdocker.kvalitetsit.dk/kvalitetsit/sts:543492665993a4323f1d4fc94d266278d58764fb
+     image: kvalitetsit/sts:f8a4556c466e031bb4d4e755af29110dc91adbfd
      environment:
        - LOG_LEVEL=DEBUG
        - STS_ISSUER=stsa
@@ -46,7 +46,7 @@ services:
        - gooioidwsrest
 # Testservice
    testservicea:
-     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/oioidws-rest-wsp:a4620d558d4be7224050f275e391340742bc8a36
+     image: kvalitetsit/oioidws-rest-wsp:a4620d558d4be7224050f275e391340742bc8a36
      environment:
        - CONTEXT=test
        - MONGODB=mongo
@@ -60,7 +60,7 @@ services:
      networks:
        - gooioidwsrest
    testservicea-wsp-samltokenvalidator:
-     image: kitdocker.kvalitetsit.dk/kit-serviceproxy/samltokenvalidationservice:a4620d558d4be7224050f275e391340742bc8a36
+     image: kvalitetsit/samltokenvalidationservice:a4620d558d4be7224050f275e391340742bc8a36
      environment:
        - SERVER_PORT=8081
        - STS_CERTIFICATE=/sts/sts.cer
