@@ -28,6 +28,8 @@ type OioIdwsRestHttpProtocolServerConfig struct {
 	HoK			bool
 
 	SessiondataHeaderName	string
+
+	ClientCertHandler       func(req *http.Request) *x509.Certificate
 }
 
 type OioIdwsRestWsp struct {
@@ -52,18 +54,22 @@ type OioIdwsRestWsp struct {
 func NewOioIdwsRestWspFromConfig(config *OioIdwsRestHttpProtocolServerConfig, sessionCache securityprotocol.SessionCache, logger *zap.SugaredLogger) *OioIdwsRestWsp {
 
 	tokenAuthenticator := NewTokenAuthenticator(config.AudienceRestriction, config.TrustCertFiles, true, logger)
-        wsp := NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service,logger)
+	certHandler := getClientCertificate
+	if (config.ClientCertHandler != nil) {
+		certHandler = config.ClientCertHandler
+	}
+        wsp := NewOioIdwsRestWsp(sessionCache, tokenAuthenticator, nil, config.Service, certHandler, logger)
 	wsp.HoK = config.HoK
 	wsp.SessiondataHeaderName = config.SessiondataHeaderName
 	return wsp
 }
 
 
-func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) *OioIdwsRestWsp{
+func NewOioIdwsRestWsp(sessionCache securityprotocol.SessionCache, tokenAuthenticator *TokenAuthenticator, matchHandler *securityprotocol.MatchHandler, service securityprotocol.HttpHandler, clientCertHandler func(req *http.Request) *x509.Certificate, logger *zap.SugaredLogger) *OioIdwsRestWsp{
 	n := new(OioIdwsRestWsp)
 	n.sessionCache = sessionCache
 	n.tokenAuthenticator = tokenAuthenticator
-	n.ClientCertHandler = getClientCertificate
+	n.ClientCertHandler = clientCertHandler
 	n.Service = service
 	n.HoK = true
 	n.Logger = logger
