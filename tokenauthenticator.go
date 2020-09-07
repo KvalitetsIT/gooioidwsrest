@@ -116,9 +116,14 @@ func (t TokenAuthenticator) ParseAndValidateAuthenticationRequestPayload(body st
 		// Extract cert info for logging purposes
 		clientCertIdentification = clientCert.Subject.CommonName
 	}
+	// Check that there is some input for validation
+	if (len(body) == 0) {
+		t.logger.Debug(fmt.Sprintf("Error authenticating: Input in body was empty"))
+		return "", nil, fmt.Errorf("Error authenticating: Input in body was empty")
+	}
 
-        // Base64 decode
-        decoded, err := base64.StdEncoding.DecodeString(body)
+    // Base64 decode
+    decoded, err := base64.StdEncoding.DecodeString(body)
 	if (err != nil) {
 		t.logger.Debug(fmt.Sprintf("Error decoding authentication request body (request body: %s) (client certificate subject commonname: %s) (error: %s)", body, clientCertIdentification, err.Error()))
 		return "", nil, err

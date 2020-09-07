@@ -2,5 +2,7 @@ FROM bash:4.4
 ADD ./sts/sts.cer /certificates/sts.cer
 ADD ./sts/sts.pem /certificates/sts.pem
 ADD ./sts/clients /clients
+#ADD ./sts/trust /trust
 VOLUME /clients
 VOLUME /certificates
+#VOLUME /trust

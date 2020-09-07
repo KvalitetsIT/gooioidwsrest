@@ -30,7 +30,7 @@ const test_oio_idws_rest_header_name = "sessionxyx"
 func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *testing.T) {
 
 	// Given
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(nil)
+	subject, tokenCache := CreateTestOioIdwsRestHttpProtocolClient(nil)
 	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
 	recorder := httptest.NewRecorder()
 	sessionId := uuid.New().String()
@@ -62,7 +62,7 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdNoSessionDataHandler(t *te
 func TestCallServiceWithOioIdwsRestClientWithSessionIdAndExtraClaimsNoSessionDataHandler(t *testing.T) {
 
 	// Given
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(nil)
+        subject, tokenCache := CreateTestOioIdwsRestHttpProtocolClient(nil)
 	req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         claimName := "claim-b"
         claimValue := "myclaimvalue1234"
@@ -115,7 +115,7 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithC
 
 	mockSessionDataFetcher := MockSessionDataFetcher{ sessionData: securityprotocol.SessionData{ SessionAttributes: sessionAttributes } }
 
-        subject, tokenCache := createTestOioIdwsRestHttpProtocolClient(mockSessionDataFetcher)
+        subject, tokenCache := CreateTestOioIdwsRestHttpProtocolClient(mockSessionDataFetcher)
         req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         recorder := httptest.NewRecorder()
         sessionId := uuid.New().String()
@@ -155,7 +155,7 @@ func TestCallServiceWithOioIdwsRestClientWithSessionIdAndSessionDataHandlerWithC
 func TestCallServiceWithOioIdwsRestClientNoSessionIdNoSessionDataHandler(t *testing.T) {
 
         // Given
-        subject, _ := createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+        subject, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         req, _ := http.NewRequest("POST", "https://testservicea/test/echo", nil)
         recorder := httptest.NewRecorder()
 
@@ -185,12 +185,17 @@ func TestCallServiceWithOioIdwsRestClientNoSessionIdNoSessionDataHandler(t *test
   *  UTILITES til testen
   *
   */
-func CreateTestOioIdwsRestHttpProtocolClient() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
+func CreateTestOioIdwsRestHttpProtocolClientIssuer1() (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
 
-        return createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
+        return createTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher), "./testdata/issued2.cer", "./testdata/issued2.key")
 }
 
-func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol.SessionDataFetcher) (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
+func CreateTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol.SessionDataFetcher) (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
+
+	return createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher, "./testdata/medcom.cer", "./testdata/medcom.pem")
+}
+
+func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol.SessionDataFetcher, clientCertFile string, clientKeyFile string) (*OioIdwsRestHttpProtocolClient, *securityprotocol.MongoTokenCache) {
 
 	mongoTokenCache, err := securityprotocol.NewMongoTokenCache("mongo", "testwsc", "mysessions")
 	if (err != nil) {
@@ -204,8 +209,8 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 		SessionHeaderName: test_oio_idws_rest_header_name,
 		StsUrl: "https://sts/sts/service/sts",
 		TrustCertFiles: []string { "./testgooioidwsrest/sts/sts.cer", "./testgooioidwsrest/certificates/testservicea/testservicea.cer" },
-		ClientCertFile: "./testdata/medcom.cer",
-		ClientKeyFile: "./testdata/medcom.pem",
+		ClientCertFile: clientCertFile,
+		ClientKeyFile: clientKeyFile,
 		SessionDataFetcher: sessionDataFetcher,
 		ServiceEndpoint: "https://testservicea/test",
 		ServiceAudience: "urn:kit:testa:servicea",

@@ -80,6 +80,21 @@ func (a OioIdwsRestWsp) Handle(w http.ResponseWriter, r *http.Request) (int, err
         return a.HandleService(w, r, a.Service)
 }
 
+func (a OioIdwsRestWsp) validateHoK(sslClientCertificate *x509.Certificate, sessionData *securityprotocol.SessionData, sessionId string) (int, error) {
+
+	// Does the certificate match?
+	hashFromClientCert := hashFromCertificate(sslClientCertificate)
+
+	if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
+
+		a.Logger.Infof("Client certificate not HoK (sessionid: %s) (hash on session: %s) (hash from clientcert: %s)", sessionId, sessionData.ClientCertHash, hashFromClientCert)
+    	return http.StatusUnauthorized, fmt.Errorf("Client certificate not HoK")
+    }
+
+	return 200, nil
+
+}
+
 func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, service securityprotocol.HttpHandler) (int, error) {
 
 
@@ -113,10 +128,9 @@ func (a OioIdwsRestWsp) HandleService(w http.ResponseWriter, r *http.Request, se
             		a.Logger.Debug(fmt.Sprintf("Sessiondata for sessionid: %s not found", sessionId))
 
 			// Validate HoK
-			hashFromClientCert := hashFromCertificate(sslClientCertificate)
-			if (a.HoK && hashFromClientCert != sessionData.ClientCertHash) {
-				a.Logger.Info(fmt.Sprintf("Client certificate not HoK (sessionid: %s)", sessionId))
-				return http.StatusUnauthorized, fmt.Errorf("Client certificate not HoK")
+			code, err := a.validateHoK(sslClientCertificate, sessionData, sessionId)
+			if (err != nil) {
+				return code, err
 			}
 
 			// Check if the user is requesting sessiondata
@@ -210,9 +224,15 @@ func hashFromCertificate(certificate *x509.Certificate) (string) {
 		return ""
 	}
 	hasher := sha1.New()
-    	hasher.Write(certificate.Raw)
-	return hex.EncodeToString(hasher.Sum(nil))
+
+//	fmt.Println(fmt.Sprintf("From cert (Rawissuer: %s) (Rawsubject: %s)", string(certificate.RawIssuer), string(certificate.RawSubject)))
+
+	hasher.Write(certificate.RawIssuer)
+	hasher.Write(certificate.RawSubject)
+	hashed := hex.EncodeToString(hasher.Sum(nil))
+	return hashed
 }
+
 
 func getClientCertificate(req *http.Request) *x509.Certificate {
 

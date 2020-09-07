@@ -41,7 +41,7 @@ func TestCallWspWithClientSSLCertificateButWithoutAuthenticationTokenFails(t *te
         // Given
         config := createConfig(true)
         httpServer, _ := createOioIdwsWsp(config, nil, mockClientCertificate)
-	httpClient := httpServer.Client()
+		httpClient := httpServer.Client()
 
         // When
         res, _ := httpClient.Get(httpServer.URL)
@@ -60,7 +60,7 @@ func TestThatHokIsValidatedOnAuthentication(t *testing.T) {
         config := createConfig(true)
         httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
-        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
@@ -88,7 +88,7 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
 	noHokHttpServer, _/*noHokWsp*/ := createOioIdwsWsp(noHokConfig, createMongoSessionCache(), nil)
 	noHokHttpClient := noHokHttpServer.Client()
 
-        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
@@ -118,6 +118,38 @@ func TestThatAuthenticatedSessionCannotBeHijackedBecauseOfHoKValidation(t *testi
         assert.Equal(t, http.StatusUnauthorized, serviceResp.StatusCode)
 }
 
+func TestThatAuthenticatedSessionCanBeUsedByOtherCertificateIfIssuerAndSubjectMatches(t *testing.T) {
+	// Given
+	config := createConfig(true)
+	httpServer, wsp := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificateByIssuer)
+	httpClient := httpServer.Client()
+
+	wsc, _ := CreateTestOioIdwsRestHttpProtocolClientIssuer1()
+	encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging :-)", []byte{}, nil)
+	authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
+	authUrl := fmt.Sprintf("%s/token", httpServer.URL)
+	serviceUrl := fmt.Sprintf("%s/hello", httpServer.URL)
+
+	// When
+	authResp, authErr := httpClient.Post(authUrl, "any", strings.NewReader(authRequest))
+	oioIdwsRestAuth, authParseErr := CreateOioIdwsRestAuthResponseFromHttpReponse(authResp,zap.NewNop().Sugar())
+	wsp.ClientCertHandler = mockClientCertificateRenewed
+	serviceRequest := createServiceRequest(serviceUrl, oioIdwsRestAuth)
+	serviceResp, serviceErr := httpClient.Do(serviceRequest)
+
+	// Then
+	assert.NilError(t, authErr)
+	assert.NilError(t, authParseErr)
+	assert.NilError(t, serviceErr)
+
+	assert.Equal(t, http.StatusOK, authResp.StatusCode)
+	assert.Equal(t, "Holder-of-key", oioIdwsRestAuth.TokenType)
+	assert.Assert(t, oioIdwsRestAuth.ExpiresIn > 0)
+	assert.Assert(t, len(oioIdwsRestAuth.AccessToken) > 0)
+
+	assert.Equal(t, http.StatusTeapot, serviceResp.StatusCode)
+}
+
 /**
   * In this testcase we try to authenticate on the service provider with a token
   * from the STS where the audience restriction is different from the audience
@@ -130,7 +162,7 @@ func TestThatAuthenticationFailsIfAudienceDoesNotMatch(t *testing.T) {
 	config.AudienceRestriction = "urn:no:match:for:me"
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
-        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         encodedToken, _ := wsc.GetEncodedTokenFromSts("id used for logging logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
@@ -155,7 +187,7 @@ func TestThatAudienceIsNotMatchedIfNotInConfig(t *testing.T) {
         config.AudienceRestriction = "" // Means no audience check!!
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
-        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         encodedToken, _ := wsc.GetEncodedTokenFromSts("id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
@@ -175,7 +207,7 @@ func TestThatSessionDataIsSentInHeaderIfConfigured(t *testing.T) {
 	config.SessiondataHeaderName = "X-Session-Data-123"
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
-        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+        wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
         encodedToken, _ := wsc.GetEncodedTokenFromSts("this id is only used for logging :-)", []byte{}, nil)
         authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
         authUrl := fmt.Sprintf("%s/token", httpServer.URL)
@@ -226,7 +258,7 @@ func TestAuthenticateAndCallingServiceUsingLegalTokenAndClientCertificate(t *tes
         config := createConfig(true)
         httpServer, _ := createOioIdwsWsp(config, createMongoSessionCache(), mockClientCertificate)
         httpClient := httpServer.Client()
-	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient()
+	wsc, _ := CreateTestOioIdwsRestHttpProtocolClient(new(securityprotocol.NilSessionDataFetcher))
 	encodedToken, _ := wsc.GetEncodedTokenFromSts("id used for logging purposes :-)", []byte{}, nil)
 	time.Sleep(2000) // Just to check that the timestamps are set correctly in the session
 	authRequest := fmt.Sprintf("saml-token=%s", encodedToken)
@@ -344,6 +376,13 @@ func mockHijackerCertificate(req *http.Request) *x509.Certificate  {
         return readCertificate("./testdata/other.cer")
 }
 
+func mockClientCertificateByIssuer(req *http.Request) *x509.Certificate  {
+	return readCertificate("./testdata/issued2.cer")
+}
+
+func mockClientCertificateRenewed(req *http.Request) *x509.Certificate  {
+	return readCertificate("./testdata/issued3.cer")
+}
 
 func readCertificate(filename string) *x509.Certificate  {
         cert, _ := ioutil.ReadFile(filename)
@@ -395,7 +434,6 @@ func createTlsServer(handlerFunc func(http.ResponseWriter, *http.Request)) *http
 func getHeaders(input string, headername string) []string {
 
 	value, rest := splitOnHeader(input, headername)
-	fmt.Println(fmt.Sprintf("found: %s", value))
 	if (value == "") {
 		return []string{}
 	}
