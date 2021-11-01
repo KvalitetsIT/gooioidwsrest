@@ -1,0 +1,44 @@
+name: Build Action - GoSecurityProtocol
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      # Checkout source code
+      - uses: actions/checkout@v2
+
+      - name: Create docker network
+        run: docker network create testgooioidwsrest_gooioidwsrest
+
+      - name: Build Docker resouce images with to be used during build
+        run: docker build -t build-gooioidwsrestresources/sts -f ./testgooioidwsrest/Dockerfile-resources-sts --no-cache ./testgooioidwsrest
+
+      - name: Build Docker resouce images with to be used during build
+        run: docker build -t build-gooioidwsrestresources/servicea -f ./testgooioidwsrest/Dockerfile-resources-servicea --no-cache ./testgooioidwsrest
+
+      
+      - name: Startup the testenvironment used by the integration tests
+        run: docker-compose -f docker-compose-db.yml up -d
+        working-directory: testgooioidwsrest
+
+      - name: Startup the testenvironment used by the integration tests
+        run: docker-compose -f docker-compose-db.yml up -d
+        working-directory: testgooioidwsrest
+
+      - name: Sleep 2s
+        run: sleep 2s
+      
+      - name: Run Docker Compose
+        run: docker-compose up -d
+        working-directory: testgooioidwsrest
+
+      - name: Sleep 3min
+        run: sleep 2m
+
+      - name: Build Docker image
+        run: docker build -t kvalitetsit/gooioidwsrest-module --network testgooioidwsrest_gooioidwsrest .    
