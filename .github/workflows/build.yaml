@@ -11,6 +11,16 @@ jobs:
     steps:
       # Checkout source code
       - uses: actions/checkout@v2
+      
+      # Login to docker hub using secrets in GitHub.
+      - name: Login to docker
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Save docker pull secret to file
+        run: cat ~/.docker/config.json > config.json
 
       - name: Create docker network
         run: docker network create testgooioidwsrest_gooioidwsrest
