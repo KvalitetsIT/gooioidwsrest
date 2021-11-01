@@ -48,7 +48,7 @@ jobs:
         working-directory: testgooioidwsrest
 
       - name: Sleep 3min
-        run: sleep 2m
+        run: sleep 3m
 
       - name: Build Docker image
         run: docker build -t kvalitetsit/gooioidwsrest-module --network testgooioidwsrest_gooioidwsrest .    
