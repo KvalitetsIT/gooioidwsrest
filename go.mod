@@ -8,14 +8,16 @@ require (
 	github.com/KvalitetsIT/gosecurityprotocol v1.0.1
 	github.com/KvalitetsIT/gostsclient v0.0.0-20190916204615-bbb628cf6e00
 	github.com/beevik/etree v1.1.0
-	github.com/google/go-cmp v0.4.0
-	github.com/google/uuid v1.1.1
-	github.com/jonboulle/clockwork v0.1.0
-	github.com/pkg/errors v0.8.1
-	github.com/russellhaering/gosaml2 v0.3.1
-	github.com/russellhaering/goxmldsig v0.0.0-00010101000000-000000000000
-	go.uber.org/atomic v1.5.0
-	go.uber.org/multierr v1.3.0
-	go.uber.org/zap v1.13.0
+	github.com/google/go-cmp v0.5.7
+	github.com/google/uuid v1.3.0
+	github.com/jonboulle/clockwork v0.2.3
+	github.com/pkg/errors v0.9.1
+	github.com/russellhaering/gosaml2 v0.6.0
+	github.com/russellhaering/goxmldsig v1.1.0
+	go.uber.org/atomic v1.9.0
+	go.uber.org/multierr v1.7.0
+	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
+	go.uber.org/zap v1.19.1
 	gotest.tools v2.2.0+incompatible
+	honnef.co/go/tools v0.0.1-2019.2.3 // indirect
 )
