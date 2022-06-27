@@ -33,6 +33,8 @@ type OioIdwsRestHttpProtocolClientConfig struct {
 
 	SessionHeaderName string
 
+	UseKombitVersion bool
+
 	StsUrl         string
 	TrustCertFiles []string
 
@@ -128,9 +130,19 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 	rsaPublicKey := cert.PublicKey.(*rsa.PublicKey)
 
 	// STSClient
-	stsClient, err := stsclient.NewStsClientWithHttpClient(client, &clientKeyPair, rsaPublicKey, config.StsUrl)
-	if err != nil {
-		panic(err)
+	var stsClient *stsclient.StsClient
+	if (config.UseKombitVersion) {
+		stsClientForUse, err := stsclient.NewStsClientWithHttpClientForKombit(client, &clientKeyPair, rsaPublicKey, config.StsUrl)
+		if err != nil {
+			panic(err)
+		}
+		stsClient = stsClientForUse
+	} else {
+		stsClientForUse, err := stsclient.NewStsClientWithHttpClient(client, &clientKeyPair, rsaPublicKey, config.StsUrl)
+		if err != nil {
+			panic(err)
+		}
+		stsClient = stsClientForUse
 	}
 
 	// Session handling
