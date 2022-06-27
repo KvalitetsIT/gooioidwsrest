@@ -23,14 +23,14 @@ type OioIdwsRestAuthResponse struct {
 }
 
 func CreateOioIdwsRestAuthResponseFromHttpReponse(authResponse *http.Response, logger *zap.SugaredLogger) (*OioIdwsRestAuthResponse, error) {
+		responseBody, err := ioutil.ReadAll(authResponse.Body)
+		if (err != nil) {
+			logger.Warnf("Cannot read responseBody: %v", err)
+			return nil, err
+		}
         if (authResponse.StatusCode != http.StatusOK) {
-            logger.Warnf("Authentication failed with statusCode: %d", authResponse.StatusCode)
-            return nil, fmt.Errorf(fmt.Sprintf("Authentication failed with statusCode: %d", authResponse.StatusCode))
-        }
-        responseBody, err := ioutil.ReadAll(authResponse.Body)
-        if (err != nil) {
-           logger.Warnf("Cannot read responseBody: %v", err)
-           return nil, err
+            logger.Warnf("Authentication failed with statusCode: %d body:%s", authResponse.StatusCode, responseBody)
+            return nil, fmt.Errorf(fmt.Sprintf("Authentication failed with statusCode: %d body:%s", authResponse.StatusCode, responseBody))
         }
 
         var jsonResponse OioIdwsRestAuthResponse
