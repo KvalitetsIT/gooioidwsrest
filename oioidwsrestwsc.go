@@ -43,6 +43,7 @@ type OioIdwsRestHttpProtocolClientConfig struct {
 
 	ServiceAudience string
 	ServiceEndpoint string
+	ServiceTokenEndpoint string
 
 	SessionDataFetcher securityprotocol.SessionDataFetcher
 
@@ -67,6 +68,7 @@ type OioIdwsRestHttpProtocolClient struct {
 	decorateRequest OioIdwsRestDecorateRequestWithAuthenticationToken
 
 	serviceEndpoint string
+	serviceTokenEndpoint string
 	serviceAudience string
 
 	service securityprotocol.HttpHandler
@@ -145,13 +147,18 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 		stsClient = stsClientForUse
 	}
 
+	var serviceTokenEndpoint = "token"
+	if len(config.ServiceTokenEndpoint) > 0 {
+		serviceTokenEndpoint = config.ServiceTokenEndpoint
+	}
+
 	// Session handling
 	sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{HttpHeaderName: config.SessionHeaderName}
 
-	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, config.ServiceAudience, config.Service, logger)
+	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, serviceTokenEndpoint, config.ServiceAudience, config.Service, logger)
 }
 
-func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceAudience string, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) *OioIdwsRestHttpProtocolClient {
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceTokenEndpoint string, serviceAudience string, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) *OioIdwsRestHttpProtocolClient {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -162,6 +169,7 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 	httpProtocolClient.httpClient = httpClient
 	httpProtocolClient.serviceEndpoint = serviceEndpoint
 	httpProtocolClient.serviceAudience = serviceAudience
+	httpProtocolClient.serviceTokenEndpoint = serviceTokenEndpoint
 	httpProtocolClient.service = service
 	httpProtocolClient.Logger = logger
 	return httpProtocolClient
@@ -311,7 +319,7 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 		return nil, err
 	}
 	// Use that SAML assertion to authenticate
-	url := fmt.Sprintf("%s/token", client.serviceEndpoint)
+	url := fmt.Sprintf("%s/%s", client.serviceEndpoint, client.serviceTokenEndpoint)
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
 	client.Logger.Debugf("Getting token from service: %s", url)
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))

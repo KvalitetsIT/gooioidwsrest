@@ -213,6 +213,7 @@ func createTestOioIdwsRestHttpProtocolClient(sessionDataFetcher securityprotocol
 		ClientKeyFile: clientKeyFile,
 		SessionDataFetcher: sessionDataFetcher,
 		ServiceEndpoint: "https://testservicea/test",
+		ServiceTokenEndpoint: "token",
 		ServiceAudience: "urn:kit:testa:servicea",
 		Service: mockService }
 
