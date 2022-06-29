@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"crypto/rsa"
 	"crypto/tls"
@@ -70,6 +71,8 @@ type OioIdwsRestHttpProtocolClient struct {
 	serviceEndpoint string
 	serviceTokenEndpoint string
 	serviceAudience string
+
+	urlEncodeToken bool
 
 	service securityprotocol.HttpHandler
 
@@ -155,10 +158,10 @@ func NewOioIdwsRestHttpProtocolClient(config OioIdwsRestHttpProtocolClientConfig
 	// Session handling
 	sessionIdHandler := securityprotocol.HttpHeaderSessionIdHandler{HttpHeaderName: config.SessionHeaderName}
 
-	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, serviceTokenEndpoint, config.ServiceAudience, config.Service, logger)
+	return newOioIdwsRestHttpProtocolClient(config.matchHandler, tokenCache, sessionIdHandler, config.SessionDataFetcher, stsClient, client, config.ServiceEndpoint, serviceTokenEndpoint, config.ServiceAudience, config.Service, config.UseKombitVersion, logger)
 }
 
-func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceTokenEndpoint string, serviceAudience string, service securityprotocol.HttpHandler, logger *zap.SugaredLogger) *OioIdwsRestHttpProtocolClient {
+func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler, tokenCache securityprotocol.TokenCache, sessionIdHandler securityprotocol.SessionIdHandler, sessionDataFetcher securityprotocol.SessionDataFetcher, stsClient *stsclient.StsClient, httpClient *http.Client, serviceEndpoint string, serviceTokenEndpoint string, serviceAudience string, service securityprotocol.HttpHandler, doUrlEncodeToken bool, logger *zap.SugaredLogger) *OioIdwsRestHttpProtocolClient {
 
 	httpProtocolClient := new(OioIdwsRestHttpProtocolClient)
 	httpProtocolClient.matchHandler = matchHandler
@@ -172,6 +175,7 @@ func newOioIdwsRestHttpProtocolClient(matchHandler securityprotocol.MatchHandler
 	httpProtocolClient.serviceTokenEndpoint = serviceTokenEndpoint
 	httpProtocolClient.service = service
 	httpProtocolClient.Logger = logger
+	httpProtocolClient.urlEncodeToken = doUrlEncodeToken
 	return httpProtocolClient
 }
 
@@ -290,7 +294,7 @@ func (client OioIdwsRestHttpProtocolClient) GetEncodedTokenFromSts(sessionId str
 	return encodedToken, nil
 }
 
-func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData) (*OioIdwsRestAuthenticationInfo, error) {
+func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.ResponseWriter, r *http.Request, sessionData *securityprotocol.SessionData,) (*OioIdwsRestAuthenticationInfo, error) {
 
 	claims := make(map[string]string)
 	if sessionData != nil {
@@ -314,6 +318,9 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	}
 
 	encodedToken, err := client.GetEncodedTokenFromSts(sessionId, decodedToken, claims)
+	if client.urlEncodeToken {
+		encodedToken = url.QueryEscape(encodedToken)
+	}
 	if err != nil {
 		client.Logger.Infof("Cannot get token from STS: %s", err.Error())
 		return nil, err
