@@ -328,7 +328,7 @@ func (client OioIdwsRestHttpProtocolClient) doClientAuthentication(w http.Respon
 	// Use that SAML assertion to authenticate
 	url := fmt.Sprintf("%s/%s", client.serviceEndpoint, client.serviceTokenEndpoint)
 	authBody := fmt.Sprintf("saml-token=%s", encodedToken)
-	client.Logger.Debugf("Getting token from service: %s", url)
+	client.Logger.Debugf("Getting token from service: %s with: %s", url, authBody)
 	authResponse, err := client.httpClient.Post(url, "application/x-www-form-urlencoded;charset=UTF-8", bytes.NewBuffer([]byte(authBody)))
 	if err != nil {
 		client.Logger.Infof("Error getting token from %s: %s", url, err.Error())
